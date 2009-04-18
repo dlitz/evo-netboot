@@ -147,32 +147,31 @@ def format_haddr(haddr):
     """Format hardware address for display"""
     return ":".join("%02x" % ord(c) for c in haddr)
 
-def serve_bootp():
+def serve_bootp(iface, client_v4addr, server_v4addr, gateway_v4addr):
     ## BOOTP ##
     skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     skt.bind(('', 10067))
     skt.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    skt.setsockopt(socket.SOL_SOCKET, IN.SO_BINDTODEVICE, "eth0\0")
+    skt.setsockopt(socket.SOL_SOCKET, IN.SO_BINDTODEVICE, iface + "\0")
 
     # Get BOOTREQUEST
     (raw_msg, addr) = skt.recvfrom(65535)
-    print `raw_msg, addr`
     msg = decode_dhcp_message(raw_msg)
     assert msg['op'] == 1   # BOOTREQUEST
     print "Got BOOTREQUEST from %r: %s" % (addr, format_haddr(msg['chaddr']))
 
     # Send BOOTREPLY
     msg['op'] = 2   # BOOTREPLY
-    msg['yiaddr'] = "".join(chr(int(c)) for c in "192.168.1.2".split("."))
-    msg['siaddr'] = "".join(chr(int(c)) for c in "192.168.1.1".split("."))
-    msg['giaddr'] = "".join(chr(int(c)) for c in "192.168.1.1".split("."))
+    msg['yiaddr'] = "".join(chr(int(c)) for c in client_v4addr.split("."))
+    msg['siaddr'] = "".join(chr(int(c)) for c in server_v4addr.split("."))
+    msg['giaddr'] = "".join(chr(int(c)) for c in gateway_v4addr.split("."))
     msg['file'] = "bootp.bin"
     raw_msg = encode_dhcp_message(msg)
     skt.sendto(raw_msg, ('255.255.255.255', 10068))
 
     skt.close()
 
-def serve_tftp():
+def serve_tftp(filename):
     ## TFTP
     skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     skt.bind(('', 10069))
@@ -197,7 +196,7 @@ def serve_tftp():
     #pkt = decode_tftp_packet(raw_pkt)
     #assert pkt['op'] == 'RRQ'
 
-    f = open("P472_3CMe8.bin", "rb")
+    f = open(filename, "rb")
     last_blocksize = None
     blocknum = 0
     state = "NEXTBLOCK"
@@ -240,5 +239,5 @@ def serve_tftp():
                 state = 'NEXTBLOCK'
 
 if __name__ == '__main__':
-    serve_bootp()
-    serve_tftp()
+    serve_bootp(iface="eth0", client_v4addr="192.168.1.2", server_v4addr="192.168.1.1", gateway_v4addr="192.168.1.1")
+    serve_tftp(sys.argv[1])
