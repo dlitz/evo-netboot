@@ -156,12 +156,12 @@ returned:
 
 # 
 .int    0x00004104   # FIXME: tags
-.int    0x00100200  # Load address
+.int    0x01000000  # Load address
 .int    0x00008000  # Image length (32768 bytes)
 .int    0x00008000  # Memory length
 
 .int    0x04000104  # FIXME: tags (last entry)
-.int    0x00108200  # Load address
+.int    0x01008000  # Load address
 .int    0x00040000  # Image length (262144 bytes)
 .int    0x00040000  # Memory length
 
@@ -170,9 +170,9 @@ returned:
 hdr_entry_point:
     # jump far, absolute, address given in operand
     # TODO: How to I make gas output this instruction?
-    # JMP #0x100200
+    # JMP #0x01000000
     .byte 0xea
-    .int 0x100200
+    .int 0x01000000
     .word 0x8
 
 .fill   6, 1, 0x00
