@@ -3,8 +3,19 @@
 
 /* Segment descriptor */
 struct segdesc {
-    uint32_t word0;
-    uint32_t word1;
+    unsigned int limit0:16;
+    unsigned int base0:16;
+    unsigned int base1:8;
+    unsigned int type:4;
+    unsigned int s:1;
+    unsigned int dpl:2;
+    unsigned int p:1;
+    unsigned int limit1:4;
+    unsigned int avl:1;
+    unsigned int _pad0:1;
+    unsigned int db:1;
+    unsigned int g:1;
+    unsigned int base2:8;
 } __attribute__((packed));
 
 /* Invoke the loader's printf-like function */
@@ -13,21 +24,18 @@ static void l_print(const char *fmt, void *arg)
     (*p_syscall)(1, 1, fmt, arg, (void*)0);
 }
 
-
 static void dump_segment_descriptor(struct segdesc *desc)
 {
     uint32_t avl, base, db, dpl, g, limit, p, s, type;
-    limit = (desc->word0 & 0xffff) | (desc->word1 & 0xf0000);
-    base = (desc->word1 & 0xff000000) |
-           ((desc->word1 & 0xff) << 16) |
-           (desc->word0 >> 16);
-    g = (desc->word1 >> 23) & 1;
-    db = (desc->word1 >> 22) & 1;
-    avl = (desc->word1 >> 20) & 1;
-    p = (desc->word1 >> 15) & 1;
-    dpl = (desc->word1 >> 13) & 3;
-    s = (desc->word1 >> 12) & 1;
-    type = (desc->word1 >> 8) & 0xf;
+    limit = desc->limit0 | (desc->limit1) << 16;
+    base = desc->base0 | (desc->base1 << 16) | (desc->base2 << 24);
+    g = desc->g;
+    db = desc->db;
+    avl = desc->avl;
+    p = desc->p;
+    dpl = desc->dpl;
+    s = desc->s;
+    type = desc->type;
     l_print("[%08x]", &desc);
     l_print(" base=0x%08x", &base);
     l_print(" limit=0x%05x", &limit);
