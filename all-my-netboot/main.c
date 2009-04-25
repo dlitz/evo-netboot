@@ -65,6 +65,7 @@ static void dump_regs(void)
     v = get_fs_reg(); l_print("FS: 0x%08x\r\n", &v);
     v = get_gs_reg(); l_print("GS: 0x%08x\r\n", &v);
     v = get_eflags_reg(); l_print("EFLAGS: 0x%08x\r\n", &v);
+    v = get_eip_reg(); l_print("EIP (approx): 0x%08x\r\n", &v);
     v = get_cr0_reg(); l_print("CR0: 0x%08x\r\n", &v);
     v = get_cr2_reg(); l_print("CR2: 0x%08x\r\n", &v);
     v = get_cr3_reg(); l_print("CR3: 0x%08x\r\n", &v);

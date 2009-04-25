@@ -24,5 +24,6 @@ extern uint32_t get_cr0_reg(void);
 extern uint32_t get_cr2_reg(void);
 extern uint32_t get_cr3_reg(void);
 extern uint32_t get_cr4_reg(void);
+extern uint32_t get_eip_reg(void);
 
 #endif

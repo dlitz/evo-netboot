@@ -92,6 +92,13 @@ get_cr4_reg:
         mov         %cr4, %eax
         ret
 
+.global get_eip_reg
+get_eip_reg:
+        call    1f
+1:
+        pop     %eax
+        ret
+
 .global test_return
 test_return:
         mov 0x4(%esp), %eax
