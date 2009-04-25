@@ -15,6 +15,9 @@ SECTIONS
   .text : {
     *(.text)
     *(.rodata)
+    *(.rodata.*)
     *(.data)
+    *(.bss)
+    *(COMMON)
   } > ram0
 }

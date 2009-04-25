@@ -3,7 +3,7 @@ AS=as
 
 WARNINGS = -Wall -W
 
-CFLAGS = $(WARNINGS) -Winit-self -std=c99 -fask -g -O0
+CFLAGS = $(WARNINGS) -Winit-self -std=c99 -g -O2 -nostdlib -fomit-frame-pointer
 ASFLAGS = $(WARNINGS)
 LDFLAGS = -nostdlib
 
@@ -21,14 +21,17 @@ nbiheader.bin: kernel.elf
 kernel.bin: kernel.elf
 	objcopy -O binary -j .text kernel.elf kernel.bin
 
-kernel.elf: mynetboot.o i386-netboot.ld
-	$(CC) mynetboot.o -o kernel.elf -T i386-netboot.ld $(LDFLAGS)
+kernel.elf: mynetboot.o main.o i386-netboot.ld
+	$(CC) mynetboot.o main.o -o kernel.elf -T i386-netboot.ld $(LDFLAGS)
 
 %.o: %.S
 	$(CC) $(ASFLAGS) -c -o $@ $<
 
+%.o: %.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
 clean:
-	rm -f mynetboot.o kernel.elf kernel.bin boot.bin boot.elf nbiheader.bin
+	rm -f mynetboot.o main.o kernel.elf kernel.bin boot.bin boot.elf nbiheader.bin
 
 .PHONY: clean
 

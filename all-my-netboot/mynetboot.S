@@ -10,14 +10,26 @@ _start:
 
         mov     $p_nbi_header, %eax
         mov     $value, %ebx
-        call    printf
+        call    xprintf
         mov     p_nbi_header, %eax
         mov     $value, %ebx
-        call    printf
-halt:
-        jmp     halt
+        call    xprintf
 
-printf:
+        call    init_c
+
+        mov     $0, %eax
+        mov     $returned, %ebx
+        call    xprintf
+
+.global halt
+halt:
+        mov     $0, %eax
+        mov     $halting, %ebx
+        call    xprintf
+real_halt:
+        jmp     real_halt
+
+xprintf:
         push %ebx
         push %ecx
         push %edx
@@ -38,6 +50,8 @@ entry_arg1:
         .int 0xdeadbeef
 p_nbi_header:
         .int 0xcafebafe
+
+.global p_syscall
 p_syscall:
         .int 0x8888f00d
 
@@ -46,6 +60,12 @@ blah:
 
 value:
         .asciz "Value: 0x%x\r\n"
+
+halting:
+        .asciz "Halting\r\n"
+
+returned:
+        .asciz "Returned from init_c\r\n"
 
 .section .nbiheader, "ax"
 # NBI format.  See "Draft Net Boot Image Proposal 0.3, June 15, 1997"
