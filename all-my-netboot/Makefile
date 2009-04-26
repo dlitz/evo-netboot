@@ -10,13 +10,17 @@ LDFLAGS = -nostdlib
 boot.elf: boot.bin
 	../bin2elf.sh boot.bin boot.elf
 
-boot.bin: kernel.bin nbiheader.bin
-	dd if=/dev/zero of=boot.bin bs=512 count=578
+boot.bin: kernel.bin nbiheader.bin lowmem.bin
+	dd if=/dev/zero of=boot.bin bs=512 count=642
 	dd if=nbiheader.bin of=boot.bin bs=512 count=1 conv=notrunc
-	dd if=kernel.bin of=boot.bin bs=512 seek=1 conv=notrunc
+	dd if=lowmem.bin of=boot.bin bs=512 seek=1 count=64 conv=notrunc
+	dd if=kernel.bin of=boot.bin bs=512 seek=65 conv=notrunc
 
 nbiheader.bin: kernel.elf
 	objcopy -O binary -j .nbiheader kernel.elf nbiheader.bin
+
+lowmem.bin: kernel.elf
+	objcopy -O binary -j .lowmem kernel.elf lowmem.bin
 
 kernel.bin: kernel.elf
 	objcopy -O binary -j .text kernel.elf kernel.bin
@@ -31,7 +35,7 @@ kernel.elf: mynetboot.o main.o i386-netboot.ld
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -f mynetboot.o main.o kernel.elf kernel.bin boot.bin boot.elf nbiheader.bin
+	rm -f mynetboot.o main.o kernel.elf kernel.bin boot.bin boot.elf nbiheader.bin lowmem.bin
 
 .PHONY: clean
 

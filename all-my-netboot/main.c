@@ -1,22 +1,6 @@
 #include <stdint.h>
 #include "mynetboot.h"
 
-/* Segment descriptor */
-struct segdesc {
-    unsigned int limit0:16;
-    unsigned int base0:16;
-    unsigned int base1:8;
-    unsigned int type:4;
-    unsigned int s:1;
-    unsigned int dpl:2;
-    unsigned int p:1;
-    unsigned int limit1:4;
-    unsigned int avl:1;
-    unsigned int _pad0:1;
-    unsigned int db:1;
-    unsigned int g:1;
-    unsigned int base2:8;
-} __attribute__((packed));
 
 /* Invoke the loader's printf-like function */
 static void l_print(const char *fmt, uint32_t arg)
@@ -78,8 +62,6 @@ static void bzero(void *s, unsigned int n)
         n--;
     }
 }
-
-struct segdesc real_mode_gdt[5];
 
 static void set_desc_base(struct segdesc *desc, void *base)
 {
@@ -143,11 +125,22 @@ void init_c(void)
     l_print("test_return returned 0x%x\r\n", test_return(5));
     dump_regs();
 
+    struct idtr idtr;
+    get_idtr(&idtr);
+    l_print("IDT base=0x%08x ", (uint32_t) idtr.base);
+    l_print(" limit=0x%04x\r\n", idtr.limit);
+
     struct gdtr gdtr;
     get_gdtr(&gdtr);
     dump_gdt(gdtr.base, gdtr.limit);
 
     l_print("Creating real-mode GDT\r\n", 0);
     create_real_mode_gdt(real_mode_gdt);
-    dump_gdt(real_mode_gdt, 5*8-1);
+    gdtr.base = real_mode_gdt;
+    gdtr.limit = 5*8-1;
+    dump_gdt(gdtr.base, gdtr.limit);
+    set_gdtr(&gdtr);
+
+    l_print("Calling test_16bit\r\n", 0);
+    test_16bit();
 }
