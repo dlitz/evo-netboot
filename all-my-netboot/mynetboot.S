@@ -50,6 +50,13 @@ get_idtr:
         sidt        (%eax)
         ret
 
+.global set_idtr
+set_idtr:
+        mov         0x4(%esp), %eax
+        add         $2, %eax    # skip the _pad member
+        lidt        (%eax)
+        ret
+
 .global get_cs_reg
 get_cs_reg:
         mov         %cs, %eax
@@ -240,7 +247,7 @@ test_16bit:
     ljmp $0x18,$real_mode_entry_point
 
 done:
-    mov $0x10, %eax     # GDT[4]
+    mov $0x10, %eax     # GDT[2]
     mov %eax, %ds
     mov %eax, %es
     mov %eax, %fs
@@ -253,7 +260,6 @@ done:
 
 .code16
 real_mode_entry_point:
-
     mov %cr0, %eax
     or $0x1, %eax
     mov %eax, %cr0

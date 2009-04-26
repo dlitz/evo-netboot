@@ -37,6 +37,30 @@ static void dump_gdt(void *base, uint16_t limit)
     }
 }
 
+static void dump_interrupt_descriptor(struct intdesc *desc)
+{
+    uint32_t offset;
+    offset = desc->offset0 | (desc->offset1) << 16;
+    l_print("[%08x]", (uint32_t) desc);
+    l_print(" segment=0x%04x", desc->segment);
+    l_print(" offset=0x%08x", offset);
+    l_print(" flags=0x%04x", desc->flags);
+    l_print(" DPL=%x", desc->dpl);
+    l_print(" P=%x", desc->p);
+    l_print("\r\n", 0);
+}
+
+static void dump_idt(void *base, uint16_t limit)
+{
+    l_print("IDT located at base: 0x%08x", (uint32_t) base);
+    l_print(" limit: 0x%04x\r\n", limit);
+    struct intdesc *p = (struct intdesc *)base;
+    for (int i = 0; i <= limit; i += 8) {
+        dump_interrupt_descriptor(p);
+        p++;
+    }
+}
+
 static void dump_regs(void)
 {
     l_print("CS: 0x%08x\r\n", get_cs_reg());
@@ -125,14 +149,13 @@ void init_c(void)
     l_print("test_return returned 0x%x\r\n", test_return(5));
     dump_regs();
 
-    struct idtr idtr;
-    get_idtr(&idtr);
-    l_print("IDT base=0x%08x ", (uint32_t) idtr.base);
-    l_print(" limit=0x%04x\r\n", idtr.limit);
-
     struct gdtr gdtr;
     get_gdtr(&gdtr);
     dump_gdt(gdtr.base, gdtr.limit);
+
+    struct idtr idtr;
+    get_idtr(&idtr);
+    dump_idt(idtr.base, idtr.limit);
 
     l_print("Creating real-mode GDT\r\n", 0);
     create_real_mode_gdt(real_mode_gdt);
@@ -140,6 +163,11 @@ void init_c(void)
     gdtr.limit = 5*8-1;
     dump_gdt(gdtr.base, gdtr.limit);
     set_gdtr(&gdtr);
+
+    l_print("Setting real-mode IDT\r\n", 0);
+    idtr.base = 0x0000;
+    idtr.limit = 0x3ff;
+    set_idtr(&idtr);
 
     l_print("Calling test_16bit\r\n", 0);
     test_16bit();

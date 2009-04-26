@@ -32,12 +32,23 @@ struct segdesc {
     unsigned int base2:8;
 } __attribute__((packed));
 
+/* Interrupt-gate descriptor */
+struct intdesc {
+    unsigned int offset0:16;
+    unsigned int segment:16;
+    unsigned int flags:13;
+    unsigned int dpl:2;
+    unsigned int p:1;
+    unsigned int offset1:16;
+} __attribute__((packed));
+
 extern void (*p_syscall)(unsigned int a, unsigned int b, const void *p, const void *q, const void *r);
 
 extern unsigned int test_return(unsigned int a);
 extern void get_gdtr(struct gdtr *out);
 extern void get_idtr(struct idtr *out);
 extern void set_gdtr(struct gdtr *out);
+extern void set_idtr(struct idtr *out);
 extern uint32_t get_cs_reg(void);
 extern uint32_t get_ds_reg(void);
 extern uint32_t get_ss_reg(void);
