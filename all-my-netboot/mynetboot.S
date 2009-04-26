@@ -260,6 +260,21 @@ done:
 
 .code16
 real_mode_entry_point:
+
+    # Make the PC speaker start beeping
+    mov $182, %al
+    out %al, $0x43
+
+    mov $0xd0, %al
+    out %al, $0x42
+    mov $0x10, %al
+    out %al, $0x42
+
+    in $0x61, %al
+    or $0x03, %al
+    out %al, $0x61
+
+    # Set the PE flag in CR0 and jump back to 32-bit mode
     mov %cr0, %eax
     or $0x1, %eax
     mov %eax, %cr0
