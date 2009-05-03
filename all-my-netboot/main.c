@@ -149,19 +149,24 @@ void init_c(void)
     l_print("test_return returned 0x%x\r\n", test_return(5));
     dump_regs();
 
+    l_print("@0x0400: 0x%04x\r\n", *(uint16_t *)0x0400);
+    l_print("@0x0402: 0x%04x\r\n", *(uint16_t *)0x0402);
+    l_print("@0x0404: 0x%04x\r\n", *(uint16_t *)0x0404);
+    l_print("@0x0406: 0x%04x\r\n", *(uint16_t *)0x0406);
+
     struct gdtr gdtr;
     get_gdtr(&gdtr);
-    dump_gdt(gdtr.base, gdtr.limit);
+//    dump_gdt(gdtr.base, gdtr.limit);
 
     struct idtr idtr;
     get_idtr(&idtr);
-    dump_idt(idtr.base, idtr.limit);
+//    dump_idt(idtr.base, idtr.limit);
 
     l_print("Creating real-mode GDT\r\n", 0);
     create_real_mode_gdt(real_mode_gdt);
     gdtr.base = real_mode_gdt;
     gdtr.limit = 5*8-1;
-    dump_gdt(gdtr.base, gdtr.limit);
+//    dump_gdt(gdtr.base, gdtr.limit);
     set_gdtr(&gdtr);
 
     l_print("Setting real-mode IDT\r\n", 0);
