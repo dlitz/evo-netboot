@@ -274,6 +274,24 @@ real_mode_entry_point:
     or $0x03, %al
     out %al, $0x61
 
+    # Make a BIOS call to output 'A' to the screen
+#    mov $0x0e, %ah
+#    mov $0x41, %al
+#    int $0x10
+
+    # Make the PC speaker stop beeping
+    mov $182, %al
+    out %al, $0x43
+
+    mov $0xd0, %al
+    out %al, $0x42
+    mov $0x10, %al
+    out %al, $0x42
+
+    in $0x61, %al
+    and $0xfc, %al
+    out %al, $0x61
+
     # Set the PE flag in CR0 and jump back to 32-bit mode
     mov %cr0, %eax
     or $0x1, %eax
