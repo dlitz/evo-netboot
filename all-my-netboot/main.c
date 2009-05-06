@@ -161,6 +161,52 @@ void create_real_mode_gdt(struct segdesc *gdt)
     gdt[4].type = 0x3; /* data */
 }
 
+/* out must point to a buffer of 13 bytes (4*3 regs + 1 NUL) */
+static void dump_cpuid(void)
+{
+    uint32_t eax, ebx, ecx, edx;
+    uint32_t cpuid_buf[5];
+
+    // CPUID 0
+    eax = 0;
+    __asm__ volatile (
+        "cpuid"
+        : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+        : "a"(eax)
+        );
+    cpuid_buf[0] = ebx;
+    cpuid_buf[1] = edx;
+    cpuid_buf[2] = ecx;
+    cpuid_buf[3] = 0;
+    l_print("CPUID0: EAX=0x%08x", eax);
+    l_print(" \"%s\"\r\n", (uint32_t) cpuid_buf);
+
+    // CPUID 1
+    eax = 1;
+    __asm__ volatile (
+        "cpuid"
+        : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+        : "a"(eax)
+        );
+    l_print("CPUID1: EAX=0x%08x", eax);
+    l_print(" EBX=0x%08x", ebx);
+    l_print(" ECX=0x%08x", ecx);
+    l_print(" EDX=0x%08x\r\n", edx);
+
+    // CPUID 2
+    eax = 2;
+    __asm__ volatile (
+        "cpuid"
+        : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+        : "a"(eax)
+        );
+    l_print("CPUID2: EAX=0x%08x", eax);
+    l_print(" EBX=0x%08x", ebx);
+    l_print(" ECX=0x%08x", ecx);
+    l_print(" EDX=0x%08x\r\n", edx);
+}
+
+
 void init_c(void)
 {
     int x = 1;
@@ -185,7 +231,7 @@ void init_c(void)
     outb(0x22, SUPERIO_PORT);
     l_print("Config Reg 2: 0x%02x\r\n", inb(SUPERIO_PORT+1));
 
-    //dump_cpuid();
+    dump_cpuid();
 
     // Enable  PC97307 UART1
     uint8_t b;
