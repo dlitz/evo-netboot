@@ -247,7 +247,9 @@ void dump_flash(void)
     uint32_t cksum = 0;
     int i;
     p = (unsigned char *)(0x00000000);
-    for (i = 0; i < 0x01000000; i++) {
+    //for (i = 0; i < 0x01000000; i++) {
+    i = 0;
+    do {
         if ((i & 0x3f) == 0) {
             serial_putc(';');
             //serial_putc(hex[(cksum >> 28) & 0xf]);
@@ -275,7 +277,9 @@ void dump_flash(void)
         serial_putc(hex[c & 0xf]);
         cksum = ROL32(cksum) ^ (uint32_t) c;
         p++;
-    }
+    //}
+        i++;
+    } while (p != 0);
 }
 
 void init_c(void)
