@@ -206,6 +206,77 @@ static void dump_cpuid(void)
     l_print(" EDX=0x%08x\r\n", edx);
 }
 
+static void dump_rom(void)
+{
+    uint32_t *p;
+    int i;
+    p = (uint32_t *)(0x000ffff0);
+    for (i = 0; i < 4; i++) {
+        l_print("[0x%08x]: ", (uint32_t) p);
+        l_print("0x%08x\r\n", *p);
+        p++;
+    }
+}
+
+
+static inline void serial_putc(unsigned char c)
+{
+    // Wait for transmitter ready (TXRDY) (bit 5 of LSR)
+    while ((inb(0x3f8+5) & (1<<5)) == 0);
+
+    // Send the byte
+    outb(c, 0x3f8);
+}
+
+static inline void serial_outstr(const char *s)
+{
+    while (*s != '\0') {
+        serial_putc((unsigned char) *s);
+        s++;
+    }
+}
+
+static const unsigned char hex[17] = "0123456789abcdef";
+
+#define ROL32(x) (((x) << 1) | (((x) >> 31) & 1))
+
+void dump_flash(void)
+{
+    unsigned char c, *p;
+    uint32_t addr;
+    uint32_t cksum = 0;
+    int i;
+    p = (unsigned char *)(0x00000000);
+    for (i = 0; i < 0x01000000; i++) {
+        if ((i & 0xf) == 0) {
+            serial_putc(';');
+            //serial_putc(hex[(cksum >> 28) & 0xf]);
+            //serial_putc(hex[(cksum >> 24) & 0xf]);
+            //serial_putc(hex[(cksum >> 20) & 0xf]);
+            //serial_putc(hex[(cksum >> 16) & 0xf]);
+            serial_putc(hex[(cksum >> 12) & 0xf]);
+            serial_putc(hex[(cksum >> 8) & 0xf]);
+            serial_putc(hex[(cksum >> 4) & 0xf]);
+            serial_putc(hex[cksum & 0xf]);
+            serial_putc('\n');
+            addr = (uint32_t) p;
+            serial_putc(hex[(addr >> 28) & 0xf]);
+            serial_putc(hex[(addr >> 24) & 0xf]);
+            serial_putc(hex[(addr >> 20) & 0xf]);
+            serial_putc(hex[(addr >> 16) & 0xf]);
+            serial_putc(hex[(addr >> 12) & 0xf]);
+            serial_putc(hex[(addr >> 8) & 0xf]);
+            serial_putc(hex[(addr >> 4) & 0xf]);
+            serial_putc(hex[addr & 0xf]);
+            serial_putc(':');
+        }
+        c = *p;
+        serial_putc(hex[(c >> 4) & 0xf]);
+        serial_putc(hex[c & 0xf]);
+        cksum = ROL32(cksum) ^ (uint32_t) c;
+        p++;
+    }
+}
 
 void init_c(void)
 {
@@ -244,7 +315,26 @@ void init_c(void)
     outb(b, SUPERIO_PORT+1);
 
     // Serial
-    outb(0x0b, 0x3f8+4);
+    l_print("Setting up serial port 115200 8N1\r\n", 0);
+    //outb(0x0b, 0x3f8+4);
+    // Set baud rate to 115200 bps (divisor=1)
+    outb(0x80 | inb(0x3f8+3), 0x3f8+3);     // Set LCR:DLAB
+    outb(0x01, 0x3f8);   // low byte
+    outb(0x00, 0x3f8+1);   // high byte
+    outb(~0x80 & inb(0x3f8+3), 0x3f8+3);     // Clear LCR:DLAB
+    // Set 8N1
+    outb(0x03, 0x3f8+3);    // LCR
+
+    // Enable FIFO
+    outb(0xc1, 0x3f8+2);    // FCR
+
+    l_print("Dumping contents of flash to serial port\r\n", 0);
+    serial_outstr("== FLASH START ==\r\n");
+    dump_flash();
+    serial_outstr("\r\n== FLASH DONE ==\r\n");
+
+//    l_print("Dumping ROM\r\n", 0);
+//    dump_rom();
 
     struct gdtr gdtr;
     get_gdtr(&gdtr);
