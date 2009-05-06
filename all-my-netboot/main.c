@@ -2,6 +2,26 @@
 #include "mynetboot.h"
 
 
+static inline void outb(uint8_t value, uint16_t port)
+{
+    __asm__ volatile (
+        "outb %%al, %1\n"
+        : /* no output */
+        : "a"(value), "d"(port)
+        );
+}
+
+static inline uint8_t inb(uint16_t port)
+{
+    uint8_t retval;
+    __asm__ volatile (
+        "inb %1, %0\n"
+        : "=a"(retval)
+        : "d"(port)
+        );
+    return retval;
+}
+
 /* Invoke the loader's printf-like function */
 static void l_print(const char *fmt, uint32_t arg)
 {
@@ -153,6 +173,32 @@ void init_c(void)
     l_print("@0x0402: 0x%04x\r\n", *(uint16_t *)0x0402);
     l_print("@0x0404: 0x%04x\r\n", *(uint16_t *)0x0404);
     l_print("@0x0406: 0x%04x\r\n", *(uint16_t *)0x0406);
+
+    // PC97307 Super I/O
+#define SUPERIO_PORT 0x15c
+    outb(0x20, SUPERIO_PORT);
+    l_print("SID: 0x%02x\r\n", inb(SUPERIO_PORT+1));
+
+    outb(0x27, SUPERIO_PORT);
+    l_print("SRID: 0x%02x\r\n", inb(SUPERIO_PORT+1));
+
+    outb(0x22, SUPERIO_PORT);
+    l_print("Config Reg 2: 0x%02x\r\n", inb(SUPERIO_PORT+1));
+
+    //dump_cpuid();
+
+    // Enable  PC97307 UART1
+    uint8_t b;
+    outb(0x7, SUPERIO_PORT);  // 0x07: logical device number
+    outb(6, SUPERIO_PORT+1);  // logical device 6 (UART1)
+
+    outb(0x30, SUPERIO_PORT);   // UART1.0x30: Activate
+    b = inb(SUPERIO_PORT+1);
+    b |= 1;     // activate
+    outb(b, SUPERIO_PORT+1);
+
+    // Serial
+    outb(0x0b, 0x3f8+4);
 
     struct gdtr gdtr;
     get_gdtr(&gdtr);

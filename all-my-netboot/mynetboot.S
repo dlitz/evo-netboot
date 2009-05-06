@@ -144,9 +144,9 @@ xprintf:
 
 .section .data
 entry_arg1:
-        .int 0xdeadbeef
+        .int 0xcafebabe
 p_nbi_header:
-        .int 0xcafebafe
+        .int 0xcafebabe
 
 .global p_syscall
 p_syscall:
