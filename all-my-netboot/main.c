@@ -273,8 +273,9 @@ void dump_flash(void)
             serial_putc(':');
         }
         c = *p;
-        serial_putc(hex[(c >> 4) & 0xf]);
-        serial_putc(hex[c & 0xf]);
+        //serial_putc(hex[(c >> 4) & 0xf]);
+        //serial_putc(hex[c & 0xf]);
+        serial_putc(c);
         cksum = ROL32(cksum) ^ (uint32_t) c;
         p++;
     //}

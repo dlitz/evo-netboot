@@ -6,13 +6,19 @@ import binascii
 #infile = open(sys.argv[1], "r")
 infile = sys.stdin
 outfile = sys.stdout
-r = re.compile(r"^([0-9a-f]{8}):([0-9a-f]*);([0-9a-f]{4})")
+r = re.compile(r"^([0-9a-f]{8}):(.{64});([0-9a-f]{4})", re.S)
 state = "START"
 while True:
-    rawline = infile.readline()
-    if not rawline:
-        raise EOFError
-    line = rawline.rstrip()
+    if state != "READ":
+        rawline = infile.readline()
+        if not rawline:
+            raise EOFError
+        line = rawline.rstrip()
+    else:
+        linelen = 8+1+64+1+4+1
+        line = infile.read(linelen)
+        if len(line) != linelen:
+            raise EOFError
     if state == "START":
         if "== FLASH START ==" in rawline:
             cksum = 0
@@ -38,10 +44,11 @@ while True:
         line_addr = int(m.group(1), 16)
         bytes = m.group(2)
         line_cksum = int(m.group(3), 16)
-        bytes = bytes.replace(" ", "")
-        if len(bytes) != 2*64:
-            raise ValueError("unable to read line: %r" % (line,))
-        rawbytes = binascii.a2b_hex(bytes)
+#        bytes = bytes.replace(" ", "")
+#        if len(bytes) != 2*64:
+#            raise ValueError("unable to read line: %r" % (line,))
+#        rawbytes = binascii.a2b_hex(bytes)
+        rawbytes = bytes
         for b in rawbytes:
             cksum = (((cksum << 1) | (cksum >> 31)) ^ ord(b)) & 0xffffffff
         if line_cksum != (cksum & 0xffff):
