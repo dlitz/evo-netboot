@@ -39,7 +39,7 @@ while True:
         bytes = m.group(2)
         line_cksum = int(m.group(3), 16)
         bytes = bytes.replace(" ", "")
-        if len(bytes) != 2*16:
+        if len(bytes) != 2*64:
             raise ValueError("unable to read line: %r" % (line,))
         rawbytes = binascii.a2b_hex(bytes)
         for b in rawbytes:

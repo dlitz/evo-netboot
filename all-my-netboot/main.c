@@ -248,7 +248,7 @@ void dump_flash(void)
     int i;
     p = (unsigned char *)(0x00000000);
     for (i = 0; i < 0x01000000; i++) {
-        if ((i & 0xf) == 0) {
+        if ((i & 0x3f) == 0) {
             serial_putc(';');
             //serial_putc(hex[(cksum >> 28) & 0xf]);
             //serial_putc(hex[(cksum >> 24) & 0xf]);
