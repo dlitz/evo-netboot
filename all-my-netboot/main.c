@@ -206,19 +206,6 @@ static void dump_cpuid(void)
     l_print(" EDX=0x%08x\r\n", edx);
 }
 
-static void dump_rom(void)
-{
-    uint32_t *p;
-    int i;
-    p = (uint32_t *)(0x000ffff0);
-    for (i = 0; i < 4; i++) {
-        l_print("[0x%08x]: ", (uint32_t) p);
-        l_print("0x%08x\r\n", *p);
-        p++;
-    }
-}
-
-
 static inline void serial_putc(unsigned char c)
 {
     // Wait for transmitter ready (TXRDY) (bit 5 of LSR)
@@ -337,9 +324,6 @@ void init_c(void)
     serial_outstr("== FLASH START ==\r\n");
     dump_flash();
     serial_outstr("\r\n== FLASH DONE ==\r\n");
-
-//    l_print("Dumping ROM\r\n", 0);
-//    dump_rom();
 
     struct gdtr gdtr;
     get_gdtr(&gdtr);
