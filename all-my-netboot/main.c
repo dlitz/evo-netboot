@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include "mynetboot.h"
 
+void *bzImage_start = (void *)0x01080000;
+extern void load_linux(void);
 
 static inline void outb(uint8_t value, uint16_t port)
 {
@@ -23,7 +25,7 @@ static inline uint8_t inb(uint16_t port)
 }
 
 /* Invoke the loader's printf-like function */
-static void l_print(const char *fmt, uint32_t arg)
+void l_print(const char *fmt, uint32_t arg)
 {
     (*p_syscall)(1, 1, fmt, &arg, (void*)0);
 }
@@ -97,7 +99,7 @@ static void dump_regs(void)
     l_print("CR4: 0x%08x\r\n", get_cr4_reg());
 }
 
-static void bzero(void *s, unsigned int n)
+void bzero(void *s, unsigned int n)
 {
     unsigned char *p = (unsigned char *)s;
     while (n > 0) {
@@ -344,6 +346,17 @@ void init_c(void)
     idtr.base = 0x0000;
     idtr.limit = 0x3ff;
     set_idtr(&idtr);
+
+    l_print("bzImage_start = 0x%08x\r\n", (uint32_t) bzImage_start);
+
+    l_print("Testing writing to low addresses\r\n", 0);
+    uint32_t volatile * volatile p = (uint32_t *)0x90000;
+    l_print("*p = 0x%08x\r\n", *p);
+    *p = 0xcafebabe;
+    l_print("*p = 0x%08x\r\n", *p);
+
+    l_print("Loading Linux...\r\n", 0);
+    load_linux();
 
     l_print("Calling test_16bit\r\n", 0);
     test_16bit();

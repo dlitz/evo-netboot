@@ -186,12 +186,18 @@ returned:
 .int    0x00008000  # Image length (32768 bytes)
 .int    0x00008000  # Memory length
 
-.int    0x04000104  # FIXME: tags (last entry)
+.int    0x00000104  # FIXME: tags
 .int    0x01008000  # Load address
 .int    0x00040000  # Image length (262144 bytes)
 .int    0x00040000  # Memory length
 
-.fill   435, 1, 0x00
+# bzImage
+.int    0x04000104  # FIXME: tags (last entry)
+.int    0x01080000  # Load address
+.int    0x00100000  # Image length (1048576 bytes)
+.int    0x00100000  # Memory length
+
+.fill   419, 1, 0x00
 
 hdr_entry_point:
     # jump far, absolute, to immediate address 08:01000000
