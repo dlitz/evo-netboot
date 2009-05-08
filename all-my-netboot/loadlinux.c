@@ -55,7 +55,19 @@ static void *memcpy(void *dest, const void *src, unsigned int n)
 }
 
 //const char *kernel_command_line = "auto";
-const char *kernel_command_line = "console=ttyS0,115200n8 debug earlyprintk=serial,ttyS0,115200 loglevel=7";
+const char *kernel_command_line =
+    "console=ttyS0,115200 earlyprintk=serial,ttyS0,115200"
+    " debug loglevel=7"
+    " acpi=off noapm"
+    " no-hlt"
+    " nolapic"
+    " idle=poll"
+    " clocksourcfe=tsc"
+    " mfgptfix"
+//    " memmap=exactmap"
+//    " memmap=1M$0"
+//    " memmap=15M@1M"
+    " memtest=4";
 
 extern void d_print(const char *fmt, uint32_t arg)
 {
