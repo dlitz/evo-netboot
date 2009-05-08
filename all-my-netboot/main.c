@@ -320,10 +320,10 @@ void init_c(void)
     // Enable FIFO
     outb(0xc1, 0x3f8+2);    // FCR
 
-    l_print("Dumping contents of flash to serial port\r\n", 0);
-    serial_outstr("== FLASH START ==\r\n");
-    dump_flash();
-    serial_outstr("\r\n== FLASH DONE ==\r\n");
+//    l_print("Dumping contents of flash to serial port\r\n", 0);
+//    serial_outstr("== FLASH START ==\r\n");
+//    dump_flash();
+//    serial_outstr("\r\n== FLASH DONE ==\r\n");
 
     struct gdtr gdtr;
     get_gdtr(&gdtr);
