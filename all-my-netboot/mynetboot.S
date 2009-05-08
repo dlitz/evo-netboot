@@ -164,6 +164,10 @@ halting:
 returned:
         .asciz "Returned from init_c\r\n"
 
+.global linux_gdt
+linux_gdt:
+    .fill 4, 8, 0x00    # There is room for 4 GDT entries here. Increase if necessary
+
 .section .nbiheader, "ax"
 # NBI format.  See "Draft Net Boot Image Proposal 0.3, June 15, 1997"
 
@@ -175,29 +179,25 @@ returned:
 
 # "Loading information records" follow:
 
-# 
+# lowmem (64 sectors)
 .int    0x00004104   # FIXME: tags
 .int    0x00001000  # Load address
 .int    0x00008000  # Image length (32768 bytes)
 .int    0x00008000  # Memory length
 
+# ram0 (64 sectors)
 .int    0x00004104   # FIXME: tags
 .int    0x01000000  # Load address
 .int    0x00008000  # Image length (32768 bytes)
 .int    0x00008000  # Memory length
 
-.int    0x00000104  # FIXME: tags
-.int    0x01008000  # Load address
-.int    0x00040000  # Image length (262144 bytes)
-.int    0x00040000  # Memory length
-
-# bzImage
-.int    0x04000104  # FIXME: tags (last entry)
+# bzImage (2048 sectors)
+.int    0x04004104  # FIXME: tags (last entry)
 .int    0x01080000  # Load address
 .int    0x00100000  # Image length (1048576 bytes)
 .int    0x00100000  # Memory length
 
-.fill   419, 1, 0x00
+.fill   435, 1, 0x00
 
 hdr_entry_point:
     # jump far, absolute, to immediate address 08:01000000

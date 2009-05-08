@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include "mynetboot.h"
 
-void *bzImage_start = (void *)0x01080000;
+extern void *bzImage_start;
 extern void load_linux(void);
 
 static inline void outb(uint8_t value, uint16_t port)
@@ -123,6 +123,28 @@ static void set_desc_limit(struct segdesc *desc, uint32_t limit)
     desc->limit1 = (limit >> 16) & 0xf;
 }
 
+void create_linux_gdt(struct segdesc *gdt)
+{
+    bzero(gdt, sizeof(struct segdesc)*4);
+    set_desc_base(&gdt[2], 0x00000000);
+    set_desc_limit(&gdt[2], 0xfffff);
+    gdt[2].db = 1;
+    gdt[2].dpl = 0;
+    gdt[2].g = 1;
+    gdt[2].p = 1;
+    gdt[2].s = 1;
+    gdt[2].type = 0xb; /* code */
+
+    set_desc_base(&gdt[3], 0x00000000);
+    set_desc_limit(&gdt[3], 0xfffff);
+    gdt[3].db = 1;
+    gdt[3].dpl = 0;
+    gdt[3].g = 1;
+    gdt[3].p = 1;
+    gdt[3].s = 1;
+    gdt[3].type = 0x3; /* data */
+}
+
 void create_real_mode_gdt(struct segdesc *gdt)
 {
     bzero(gdt, sizeof(struct segdesc)*5);
@@ -217,7 +239,7 @@ static inline void serial_putc(unsigned char c)
     outb(c, 0x3f8);
 }
 
-static inline void serial_outstr(const char *s)
+void serial_outstr(const char *s)
 {
     while (*s != '\0') {
         serial_putc((unsigned char) *s);
@@ -322,10 +344,15 @@ void init_c(void)
     // Enable FIFO
     outb(0xc1, 0x3f8+2);    // FCR
 
-//    l_print("Dumping contents of flash to serial port\r\n", 0);
-//    serial_outstr("== FLASH START ==\r\n");
-//    dump_flash();
-//    serial_outstr("\r\n== FLASH DONE ==\r\n");
+    serial_putc('*');
+    serial_putc('*');
+    serial_putc('*');
+    serial_outstr("Serial port enabled\r\n");
+
+    //l_print("Dumping contents of flash to serial port\r\n", 0);
+    //serial_outstr("== FLASH START ==\r\n");
+    //dump_flash();
+    //serial_outstr("\r\n== FLASH DONE ==\r\n");
 
     struct gdtr gdtr;
     get_gdtr(&gdtr);
@@ -335,17 +362,19 @@ void init_c(void)
     get_idtr(&idtr);
 //    dump_idt(idtr.base, idtr.limit);
 
-    l_print("Creating real-mode GDT\r\n", 0);
-    create_real_mode_gdt(real_mode_gdt);
-    gdtr.base = real_mode_gdt;
-    gdtr.limit = 5*8-1;
-//    dump_gdt(gdtr.base, gdtr.limit);
+    l_print("Creating Linux GDT\r\n", 0);
+    create_linux_gdt(linux_gdt);
+    gdtr.base = linux_gdt;
+    gdtr.limit = 4*8-1;
+    dump_gdt(gdtr.base, gdtr.limit);
     set_gdtr(&gdtr);
 
+/*
     l_print("Setting real-mode IDT\r\n", 0);
     idtr.base = 0x0000;
     idtr.limit = 0x3ff;
     set_idtr(&idtr);
+*/
 
     l_print("bzImage_start = 0x%08x\r\n", (uint32_t) bzImage_start);
 
