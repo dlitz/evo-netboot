@@ -7,6 +7,13 @@ extern void boot_linux(void);
 void *bzImage_start = (void *)0x01080000;
 void *kernel32_entry_point = (void *)0x00100000;
 extern void serial_outstr(const char *s);
+
+struct e820entry {
+    uint64_t addr;
+    uint64_t length;
+    uint32_t type;
+} __attribute__((packed));
+
 struct boot_params {    // a.k.a. the "zero-page"
     uint8_t screen_info[0x40];          /* 0x000 */
     uint8_t apm_bios_info[0x14];        /* 0x040 */
@@ -40,6 +47,8 @@ struct boot_params {    // a.k.a. the "zero-page"
     uint8_t  loadflags;         /* 0x211 */
     uint8_t  _pad4[0x16];       /* 0x212 */
     uint32_t cmd_line_ptr;      /* 0x228 */
+    uint8_t  _pad5[0xa4];       /* 0x22c */
+    struct e820entry e820_map[128]; /* 0x2d0 */
 } __attribute__((packed));
 
 struct boot_params boot_params;
@@ -84,6 +93,7 @@ void load_linux(void)
     d_print("bp_size = 0x%x\r\n", bp_size);
     memcpy(&boot_params, bp, bp_size);
     bzero(&boot_params, 0x1f1);     /* clear everything up to the setup_header */
+    bp = &boot_params;
 
     // Clear the kernel
     const char *kernel32_start = bzImage_start + (bp->setup_sects+1)*512;
@@ -115,11 +125,31 @@ void load_linux(void)
 
     // Set up zero-page
     d_print("Setting up zero-page...\r\n", 0);
-    bp->alt_mem_k = 16*1024;    /* support 16 MiB memory (XXX) */
+    //bp->alt_mem_k = 16*1024;    /* support 16 MiB memory (XXX) */
+    bp->e820_entries = 0;
+
+    /* 0x00000000 - 0x0009efff (636 KiB) usable */
+    bp->e820_map[0].addr   = 0x00000000;
+    bp->e820_map[0].length = 0x0009f000;
+    bp->e820_map[0].type   = 1;
+    bp->e820_entries++;
+
+    /* 0x0009f000 - 0x0009ffff (4 KiB) reserved */
+    /* Linux ignores e820 maps with only 1 entry, so we need some kind of
+     * discontinuity. */
+    bp->e820_map[1].addr   = 0x0009f000;
+    bp->e820_map[1].length = 0x00001000;
+    bp->e820_map[1].type   = 2;
+    bp->e820_entries++;
+
+    /* 0x000a0000 - 0x00FFffff (16 MiB less 640 KiB) usable */
+    bp->e820_map[2].addr   = 0x000a0000;
+    bp->e820_map[2].length = 0x00f60000;
+    bp->e820_map[2].type   = 1;
+    bp->e820_entries++;
 
     // Set boot_params
     d_print("Setting boot_params...\r\n", 0);
-    bp = &boot_params;
     bp->vid_mode = 0xffff;      /* vga=normal */
     bp->type_of_loader = 0xff;  /* other */
     bp->loadflags = 0x01;  /* LOADED_HIGH, !QUIET_FLAG, !KEEP_SEGMENTS, !CAN_USE_HEAP */
