@@ -518,13 +518,13 @@ extern void create_pirq_table(void)
         case 5: // USB Controller
             t->slots[i].pci_devfunc = 0x98;
         }
-        t->slots[i].inta_link = 1;
+        t->slots[i].inta_link = 2;
         t->slots[i].inta_bitmap = 0xDEFA; // IRQs 1,3,4,5,6,7,9,10,11,12,14,15
-        t->slots[i].intb_link = 2;
+        t->slots[i].intb_link = 1;
         t->slots[i].intb_bitmap = 0xDEFA; // IRQs 1,3,4,5,6,7,9,10,11,12,14,15
-        t->slots[i].intc_link = 3;
+        t->slots[i].intc_link = 4;
         t->slots[i].intc_bitmap = 0xDEFA; // IRQs 1,3,4,5,6,7,9,10,11,12,14,15
-        t->slots[i].intd_link = 4;
+        t->slots[i].intd_link = 3;
         t->slots[i].intd_bitmap = 0xDEFA; // IRQs 1,3,4,5,6,7,9,10,11,12,14,15
         t->slots[i].slot_number = 0;
     }
