@@ -6,6 +6,8 @@
 extern void *bzImage_start;
 extern void load_linux(void);
 
+#define PIRQ_NUM_SLOTS 7
+
 struct pirq_slot {
     uint8_t pci_bus;
     uint8_t pci_devfunc;
@@ -33,7 +35,7 @@ struct pirq_table {
     uint32_t miniport_data;
     uint8_t _reserved[11];
     uint8_t checksum;   /* mod 256 must equal 0 */
-    struct pirq_slot slots[6];
+    struct pirq_slot slots[PIRQ_NUM_SLOTS];
 } __attribute__((packed));
 
 static inline void outb(uint8_t value, uint16_t port)
@@ -487,24 +489,23 @@ void dump_flash(void)
 extern void create_pirq_table(void)
 {
     struct pirq_table *t = (struct pirq_table *)0xf0000;
-    const unsigned int num_slots = 6;
     bzero(t, sizeof(struct pirq_table));
     t->signature = '$' | ('P' << 8) | ('I' << 16) | ('R' << 24);
     t->version = 0x0100;
-    t->table_size = 32 + num_slots*16;
+    t->table_size = 32 + PIRQ_NUM_SLOTS*16;
     t->irq_router_bus = 0;
-    t->irq_router_devfunc = 0x90;
-    t->exclusive_irq = 0;   // FIXME: Is this correct?
+    t->irq_router_devfunc = 0x90; // CS5530A: F0 Bridge Configuration
+    t->exclusive_irq = 0;  // No IRQs are exclusive to PCI (XXX: probably wrong)
     t->irq_router_compat_vendor_id = 0x1078;    // PCI_VENDOR_ID_CYRIX
     t->irq_router_compat_device_id = 0x0002;    // PCI_DEVICE_ID_CYRIX_5520
     t->miniport_data = 0;
 
-    for (unsigned int i = 0; i < num_slots; i++) {
+    for (unsigned int i = 0; i < PIRQ_NUM_SLOTS; i++) {
         bzero(&t->slots[i], sizeof(struct pirq_slot));
         t->slots[i].pci_bus = 0;
+        switch (i) {
         // See the CS5530A documentation,
         // Table 5-1 "PCI Configuration Address Register"
-        switch (i) {
         case 0: // Function 0: Bridge Configuration
             t->slots[i].pci_devfunc = 0x90;
         case 1: // Function 1: SMI Status and ACPI Timer
@@ -517,6 +518,8 @@ extern void create_pirq_table(void)
             t->slots[i].pci_devfunc = 0x94;
         case 5: // USB Controller
             t->slots[i].pci_devfunc = 0x98;
+        case 6: // TI PCI1410APGE CardBus controller
+            t->slots[6].pci_devfunc = 0x0e << 3;
         }
         t->slots[i].inta_link = 2;
         t->slots[i].inta_bitmap = 0xDEFA; // IRQs 1,3,4,5,6,7,9,10,11,12,14,15
