@@ -11,7 +11,7 @@ boot.elf: boot.bin
 	../bin2elf.sh boot.bin boot.elf
 
 boot.bin: kernel.bin nbiheader.bin lowmem.bin bzImage
-	dd if=/dev/zero of=boot.bin bs=512 count=2177
+	dd if=/dev/zero of=boot.bin bs=512 count=8321
 	dd if=nbiheader.bin of=boot.bin bs=512 count=1 conv=notrunc
 	dd if=lowmem.bin of=boot.bin bs=512 seek=1 count=64 conv=notrunc
 	dd if=kernel.bin of=boot.bin bs=512 seek=65 count=64 conv=notrunc

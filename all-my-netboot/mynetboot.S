@@ -191,11 +191,11 @@ linux_gdt:
 .int    0x00008000  # Image length (32768 bytes)
 .int    0x00008000  # Memory length
 
-# bzImage (2048 sectors)
+# bzImage (8192 sectors)
 .int    0x04004104  # FIXME: tags (last entry)
 .int    0x01080000  # Load address
-.int    0x00100000  # Image length (1048576 bytes)
-.int    0x00100000  # Memory length
+.int    0x00400000  # Image length (4194304 bytes)
+.int    0x00400000  # Memory length
 
 .fill   435, 1, 0x00
 
