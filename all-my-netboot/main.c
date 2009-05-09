@@ -1,13 +1,63 @@
+#include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "mynetboot.h"
 
 extern void *bzImage_start;
 extern void load_linux(void);
 
+struct pirq_slot {
+    uint8_t pci_bus;
+    uint8_t pci_devfunc;
+    uint8_t inta_link;
+    uint16_t inta_bitmap;
+    uint8_t intb_link;
+    uint16_t intb_bitmap;
+    uint8_t intc_link;
+    uint16_t intc_bitmap;
+    uint8_t intd_link;
+    uint16_t intd_bitmap;
+    uint8_t slot_number;
+    uint8_t _reserved[1];
+} __attribute__((packed));
+
+struct pirq_table {
+    uint32_t signature;
+    uint16_t version;
+    uint16_t table_size;
+    uint8_t irq_router_bus;
+    uint8_t irq_router_devfunc;
+    uint16_t exclusive_irq;
+    uint16_t irq_router_compat_vendor_id;
+    uint16_t irq_router_compat_device_id;
+    uint32_t miniport_data;
+    uint8_t _reserved[11];
+    uint8_t checksum;   /* mod 256 must equal 0 */
+    struct pirq_slot slots[6];
+} __attribute__((packed));
+
 static inline void outb(uint8_t value, uint16_t port)
 {
     __asm__ volatile (
-        "outb %%al, %1\n"
+        "outb %0, %1\n"
+        : /* no output */
+        : "a"(value), "d"(port)
+        );
+}
+
+static inline void outw(uint16_t value, uint16_t port)
+{
+    __asm__ volatile (
+        "outl %0, %1\n"
+        : /* no output */
+        : "a"(value), "d"(port)
+        );
+}
+
+static inline void outl(uint32_t value, uint16_t port)
+{
+    __asm__ volatile (
+        "outl %0, %1\n"
         : /* no output */
         : "a"(value), "d"(port)
         );
@@ -22,6 +72,142 @@ static inline uint8_t inb(uint16_t port)
         : "d"(port)
         );
     return retval;
+}
+
+static inline uint16_t inw(uint16_t port)
+{
+    uint16_t retval;
+    __asm__ volatile (
+        "inw %1, %0\n"
+        : "=a"(retval)
+        : "d"(port)
+        );
+    return retval;
+}
+
+static inline uint32_t inl(uint16_t port)
+{
+    uint32_t retval;
+    __asm__ volatile (
+        "inl %1, %0\n"
+        : "=a"(retval)
+        : "d"(port)
+        );
+    return retval;
+}
+
+static uint8_t pci_config_in8(unsigned int busno, unsigned int devno,
+    unsigned int func, unsigned int index)
+{
+    outl(0x80000000
+            | ((busno & 0xff) << 16)
+            | ((devno & 0x1f) << 11)
+            | ((func & 0x7) << 8)
+            | (index & 0xfc), 0xcf8);
+    return inb(0xcfc | (index & 3));
+}
+
+static uint16_t pci_config_in16(unsigned int busno, unsigned int devno,
+    unsigned int func, unsigned int index)
+{
+    outl(0x80000000
+            | ((busno & 0xff) << 16)
+            | ((devno & 0x1f) << 11)
+            | ((func & 0x7) << 8)
+            | (index & 0xfc), 0xcf8);
+    return inw(0xcfc | (index & 2));
+}
+
+static uint32_t pci_config_in32(unsigned int busno, unsigned int devno,
+    unsigned int func, unsigned int index)
+{
+    outl(0x80000000
+            | ((busno & 0xff) << 16)
+            | ((devno & 0x1f) << 11)
+            | ((func & 0x7) << 8)
+            | (index & 0xfc), 0xcf8);
+    return inl(0xcfc);
+}
+
+static void pci_config_out8(unsigned int busno, unsigned int devno,
+    unsigned int func, unsigned int index, uint8_t value)
+{
+    outl(0x80000000
+            | ((busno & 0xff) << 16)
+            | ((devno & 0x1f) << 11)
+            | ((func & 0x7) << 8)
+            | (index & 0xfc), 0xcf8);
+    outb(value, 0xcfc | (index & 3));
+}
+
+static void pci_config_out16(unsigned int busno, unsigned int devno,
+    unsigned int func, unsigned int index, uint16_t value)
+{
+    outl(0x80000000
+            | ((busno & 0xff) << 16)
+            | ((devno & 0x1f) << 11)
+            | ((func & 0x7) << 8)
+            | (index & 0xfc), 0xcf8);
+    outw(value, 0xcfc | (index & 2));
+}
+
+static void pci_config_out32(unsigned int busno, unsigned int devno,
+    unsigned int func, unsigned int index, uint32_t value)
+{
+    outl(0x80000000
+            | ((busno & 0xff) << 16)
+            | ((devno & 0x1f) << 11)
+            | ((func & 0x7) << 8)
+            | (index & 0xfc), 0xcf8);
+    outl(value, 0xcfc);
+}
+
+#define PCI_F0_IN8(index) pci_config_in8(0, 0x12, 0, index)
+#define PCI_F0_IN16(index) pci_config_in16(0, 0x12, 0, index)
+#define PCI_F0_IN32(index) pci_config_in32(0, 0x12, 0, index)
+#define PCI_F0_OUT8(index, value) pci_config_out8(0, 0x12, 0, index, value)
+#define PCI_F0_OUT16(index, value) pci_config_out16(0, 0x12, 0, index, value)
+#define PCI_F0_OUT32(index, value) pci_config_out32(0, 0x12, 0, index, value)
+
+// irq must be 1,3-7,9-15
+static void isa_set_irq_edge(unsigned int irq, bool edge)
+{
+    uint8_t mask, value;
+    uint16_t port;
+    if (irq == 1 || (irq >= 2 && irq <= 7)) {
+        mask = (1 << irq);
+        port = 0x4d0;
+    } else if (irq >= 9 && irq <= 15) {
+        mask = (1 << (irq - 8));
+        port = 0x4d1;
+    } else {
+        // XXX: Do nothing (we should warn/panic here)
+    }
+    if (edge) {
+        value = mask;
+        mask = 0xff;
+    } else {
+        value = 0;
+        mask = ~mask;
+    }
+    outb((inb(port) & mask) | value, port);
+}
+
+static void pci_set_inta_irq(unsigned int irq) {
+    isa_set_irq_edge(irq, true);
+    PCI_F0_OUT8(0x5c, (PCI_F0_IN8(0x5c) & 0xf0) | irq);
+}
+static void pci_set_intb_irq(unsigned int irq) {
+    isa_set_irq_edge(irq, true);
+    PCI_F0_OUT8(0x5c, (PCI_F0_IN8(0x5c) & 0x0f) | (irq << 4));
+}
+static void pci_set_intc_irq(unsigned int irq) {
+    isa_set_irq_edge(irq, true);
+    PCI_F0_OUT8(0x5d, (PCI_F0_IN8(0x5d) & 0xf0) | irq);
+}
+static void pci_set_intd_irq(unsigned int irq) {
+    isa_set_irq_edge(irq, true);
+    PCI_F0_OUT8(0x5d, (PCI_F0_IN8(0x5d) & 0x0f) | (irq << 4));
 }
 
 /* Invoke the loader's printf-like function */
@@ -294,6 +480,63 @@ void dump_flash(void)
     } while (p != 0);
 }
 
+// See http://www.microsoft.com/whdc/archive/pciirq.mspx
+// PCI IRQ Routing Table Specification
+// Microsoft Corporation, Version 1.0, February 27, 1998
+// (Updated: December 4, 2001)
+extern void create_pirq_table(void)
+{
+    struct pirq_table *t = (struct pirq_table *)0xf0000;
+    const unsigned int num_slots = 6;
+    bzero(t, sizeof(struct pirq_table));
+    t->signature = '$' | ('P' << 8) | ('I' << 16) | ('R' << 24);
+    t->version = 0x0100;
+    t->table_size = 32 + num_slots*16;
+    t->irq_router_bus = 0;
+    t->irq_router_devfunc = 0x90;
+    t->exclusive_irq = 0;   // FIXME: Is this correct?
+    t->irq_router_compat_vendor_id = 0x1078;    // PCI_VENDOR_ID_CYRIX
+    t->irq_router_compat_device_id = 0x0002;    // PCI_DEVICE_ID_CYRIX_5520
+    t->miniport_data = 0;
+
+    for (unsigned int i = 0; i < num_slots; i++) {
+        bzero(&t->slots[i], sizeof(struct pirq_slot));
+        t->slots[i].pci_bus = 0;
+        // See the CS5530A documentation,
+        // Table 5-1 "PCI Configuration Address Register"
+        switch (i) {
+        case 0: // Function 0: Bridge Configuration
+            t->slots[i].pci_devfunc = 0x90;
+        case 1: // Function 1: SMI Status and ACPI Timer
+            t->slots[i].pci_devfunc = 0x91;
+        case 2: // Function 2: IDE Controller
+            t->slots[i].pci_devfunc = 0x92;
+        case 3: // Function 3: XpressAUDIO Subsystem
+            t->slots[i].pci_devfunc = 0x93;
+        case 4: // Function 4: XpressAUDIO Subsystem
+            t->slots[i].pci_devfunc = 0x94;
+        case 5: // USB Controller
+            t->slots[i].pci_devfunc = 0x98;
+        }
+        t->slots[i].inta_link = 1;
+        t->slots[i].inta_bitmap = 0xDEFA; // IRQs 1,3,4,5,6,7,9,10,11,12,14,15
+        t->slots[i].intb_link = 2;
+        t->slots[i].intb_bitmap = 0xDEFA; // IRQs 1,3,4,5,6,7,9,10,11,12,14,15
+        t->slots[i].intc_link = 3;
+        t->slots[i].intc_bitmap = 0xDEFA; // IRQs 1,3,4,5,6,7,9,10,11,12,14,15
+        t->slots[i].intd_link = 4;
+        t->slots[i].intd_bitmap = 0xDEFA; // IRQs 1,3,4,5,6,7,9,10,11,12,14,15
+        t->slots[i].slot_number = 0;
+    }
+
+    t->checksum = 0;
+    uint8_t checksum = 0;
+    for (int i = 0; i < t->table_size; i++) {
+        checksum += ((unsigned char *)t)[i];
+    }
+    t->checksum = -checksum;
+}
+
 void init_c(void)
 {
     int x = 1;
@@ -384,9 +627,54 @@ void init_c(void)
     *p = 0xcafebabe;
     l_print("*p = 0x%08x\r\n", *p);
 
+    //uint32_t v;
+    //outl(0x80009000, 0xcf8);    /* F0:00h-01h Vendor ID */
+    //v = inl(0xcfc);
+    //l_print("PCI vendor ID: 0x%04x\r\n", v & 0xffff );
+    //l_print("PCI device ID: 0x%04x\r\n", v >> 16);
+
+    //pci_set_inta_irq(8);
+    //pci_set_intb_irq(9);
+    //pci_set_intc_irq(10);
+    //pci_set_intd_irq(11);
+
+    l_print("PCI vendor ID(00h): 0x%04x\r\n", PCI_F0_IN16(0x00));
+    l_print("PCI device ID(02h): 0x%04x\r\n", PCI_F0_IN16(0x02));
+    l_print("PCI RCR(44h): 0x%02x\r\n", PCI_F0_IN8(0x44));
+    l_print("PCI 41h: 0x%02x\r\n", PCI_F0_IN8(0x41));
+    l_print("PCI 5Ch: 0x%02x\r\n", PCI_F0_IN8(0x5c));
+    l_print("PCI 5Dh: 0x%02x\r\n", PCI_F0_IN8(0x5d));
+    l_print("Level/Edge (4D0h): 0x%02x\r\n", inb(0x4d0));
+    l_print("Level/Edge (4D1h): 0x%02x\r\n", inb(0x4d1));
+
+#if 0
+    outl(0x80009000|(0x44<<2), 0xcf8);    /* F0:44 Reset Control Register */
+    l_print("PCI H26 strapping: 0x%02x\r\n", inb(0xcfc));
+
+    outl(0x80009000|(0x41<<2), 0xcf8);    /* F0:41 PCI Function Control Register */
+    l_print("PCI 0x41: 0x%02x\r\n", inb(0xcfc));
+
+    // Configure PCI IRQs as level-triggered
+    outb(inb(0x4d0) | 0x3a, 0x4d0);
+
+    // Set PCI IRQs
+    outl(0x80009000|(0x5c<<2), 0xcf8);    /* F0:5D PCI Interrupt Steering Register 1 */
+    outb(0x31, 0xcfc);    // INTA#=IRQ1 INTB#=IRQ3
+    outl(0x80009000|(0x5d<<2), 0xcf8);    /* F0:5D PCI Interrupt Steering Register 2 */
+    outb(0x54, 0xcfc);    // INTC#=IRQ4 INTD#=IRQ5
+
+    l_print("PCI IRQ table:\r\n", 0);
+    outl(0x80009000|(0x5c<<2), 0xcf8);    /* F0:5C PCI Interrupt Steering Register 1 */
+    l_print("INTA#/INTB# 0x%02x\r\n", inb(0xcfc));
+    outl(0x80009000|(0x5d<<2), 0xcf8);    /* F0:5D PCI Interrupt Steering Register 2 */
+    l_print("INTD#/INTC# 0x%02x\r\n", inb(0xcfc));
+#endif
+    l_print("Creating PCI IRQ table...\r\n", 0);
+    create_pirq_table();
+
     l_print("Loading Linux...\r\n", 0);
     load_linux();
 
-    l_print("Calling test_16bit\r\n", 0);
-    test_16bit();
+//    l_print("Calling test_16bit\r\n", 0);
+//    test_16bit();
 }
