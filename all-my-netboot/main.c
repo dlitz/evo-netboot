@@ -513,7 +513,7 @@ extern void create_pirq_table(void)
             t->slots[i].pci_devfunc = 0x92;
         case 3: // Function 3: XpressAUDIO Subsystem
             t->slots[i].pci_devfunc = 0x93;
-        case 4: // Function 4: XpressAUDIO Subsystem
+        case 4: // Function 4: Video Controller
             t->slots[i].pci_devfunc = 0x94;
         case 5: // USB Controller
             t->slots[i].pci_devfunc = 0x98;

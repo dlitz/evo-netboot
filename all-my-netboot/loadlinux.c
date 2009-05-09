@@ -68,7 +68,7 @@ const char *kernel_command_line =
     "console=ttyS0,115200 console=tty0 earlyprintk=serial,ttyS0,115200"
     //" pci=nobios"
     //" pci=earlydump,noacpi,routeirq,nobios,assign-busses"
-    //" pci=earlydump,biosirq"
+    " pci=earlydump"
     //" irqpoll"
     //" video=640x480@60m"
     //" pci=biosirq"
