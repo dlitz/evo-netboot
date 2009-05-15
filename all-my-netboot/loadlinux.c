@@ -75,7 +75,8 @@ const char *kernel_command_line =
     //" pirq=8,9,10,11"
     //" gxfb.mode_option=1024x768@60"
     //" video=gxfb:1024x768@60"
-    " rootwait root=/dev/sda1 init=/bin/sh"
+    //" rootwait root=LABEL=geo.green ro"
+    " rootwait root=/dev/sda1 ro"
     " debug loglevel=7"
 //    " acpi=off noapm"
 //    " no-hlt"
@@ -152,9 +153,9 @@ void load_linux(void)
     bp->e820_map[1].type   = 2;
     bp->e820_entries++;
 
-    /* 0x000a0000 - 0x01FFffff (32 MiB less 640 KiB) usable */
+    /* 0x000a0000 - 0x00FFffff (16 MiB less 640 KiB) usable */
     bp->e820_map[2].addr   = 0x000a0000;
-    bp->e820_map[2].length = 0x01f60000;
+    bp->e820_map[2].length = 0x00f60000;
     bp->e820_map[2].type   = 1;
     bp->e820_entries++;
 
