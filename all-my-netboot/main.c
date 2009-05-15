@@ -540,6 +540,27 @@ extern void create_pirq_table(void)
     t->checksum = -checksum;
 }
 
+void memtest(void)
+{
+    uint32_t volatile * volatile p = 0x01d70000;
+    for (;;) {
+        //l_print("@0x%08x: ", (uint32_t) p);
+        //l_print("0x%08x", (uint32_t) *p);
+        *p = ~(uint32_t) p;
+        //l_print(" 0x%08x", ~(uint32_t) p);
+        //l_print(" 0x%08x", *p);
+        if (*p != ~(uint32_t)p) {
+            l_print("@0x%08x: ", (uint32_t) p);
+            l_print(" FAIL\r\n", 0);
+            for(;;);    // halt
+        } else {
+            //l_print(" ok\r\n", 0);
+        }
+        p += 1;
+        //for (volatile uint32_t j=0; j < 0x00100000; j++);  // delay
+    }
+}
+
 void init_c(void)
 {
     int x = 1;
@@ -674,6 +695,9 @@ void init_c(void)
 #endif
     l_print("Creating PCI IRQ table...\r\n", 0);
     create_pirq_table();
+
+    l_print("Memory test...\r\n", 0);
+    memtest();
 
     l_print("Loading Linux...\r\n", 0);
     load_linux();
