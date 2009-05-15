@@ -110,27 +110,6 @@ static void dump_cpuid(void)
     l_print(" EDX=0x%08x\r\n", edx);
 }
 
-static inline void serial_putc(unsigned char c)
-{
-    // Wait for transmitter ready (TXRDY) (bit 5 of LSR)
-    while ((inb(0x3f8+5) & (1<<5)) == 0);
-
-    // Send the byte
-    outb(c, 0x3f8);
-}
-
-void serial_outstr(const char *s)
-{
-    while (*s != '\0') {
-        serial_putc((unsigned char) *s);
-        s++;
-    }
-}
-
-static const unsigned char hex[17] = "0123456789abcdef";
-
-#define ROL32(x) (((x) << 1) | (((x) >> 31) & 1))
-
 void init_c(void)
 {
     int x = 1;
