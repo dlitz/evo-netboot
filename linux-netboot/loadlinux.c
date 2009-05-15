@@ -1,8 +1,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "memory.h"
+
 extern void l_print(const char *fmt, uint32_t arg);
-extern void bzero(void *s, unsigned int n);
 extern void boot_linux(void);
 void *bzImage_start = (void *)0x01080000;
 void *kernel32_entry_point = (void *)0x00100000;
@@ -52,16 +53,6 @@ struct boot_params {    // a.k.a. the "zero-page"
 } __attribute__((packed));
 
 struct boot_params boot_params;
-
-static void *memcpy(void *dest, const void *src, unsigned int n)
-{
-    char *d = dest;
-    const char *s = src;
-    while (n-- > 0) {
-        *d++ = *s++;
-    }
-    return dest;
-}
 
 //const char *kernel_command_line = "auto";
 const char *kernel_command_line =
