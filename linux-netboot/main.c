@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include "portio.h"
 #include "mynetboot.h"
 
 extern void *bzImage_start;
@@ -37,66 +38,6 @@ struct pirq_table {
     uint8_t checksum;   /* mod 256 must equal 0 */
     struct pirq_slot slots[PIRQ_NUM_SLOTS];
 } __attribute__((packed));
-
-static inline void outb(uint8_t value, uint16_t port)
-{
-    __asm__ volatile (
-        "outb %0, %1\n"
-        : /* no output */
-        : "a"(value), "d"(port)
-        );
-}
-
-static inline void outw(uint16_t value, uint16_t port)
-{
-    __asm__ volatile (
-        "outl %0, %1\n"
-        : /* no output */
-        : "a"(value), "d"(port)
-        );
-}
-
-static inline void outl(uint32_t value, uint16_t port)
-{
-    __asm__ volatile (
-        "outl %0, %1\n"
-        : /* no output */
-        : "a"(value), "d"(port)
-        );
-}
-
-static inline uint8_t inb(uint16_t port)
-{
-    uint8_t retval;
-    __asm__ volatile (
-        "inb %1, %0\n"
-        : "=a"(retval)
-        : "d"(port)
-        );
-    return retval;
-}
-
-static inline uint16_t inw(uint16_t port)
-{
-    uint16_t retval;
-    __asm__ volatile (
-        "inw %1, %0\n"
-        : "=a"(retval)
-        : "d"(port)
-        );
-    return retval;
-}
-
-static inline uint32_t inl(uint16_t port)
-{
-    uint32_t retval;
-    __asm__ volatile (
-        "inl %1, %0\n"
-        : "=a"(retval)
-        : "d"(port)
-        );
-    return retval;
-}
 
 static uint8_t pci_config_in8(unsigned int busno, unsigned int devno,
     unsigned int func, unsigned int index)
