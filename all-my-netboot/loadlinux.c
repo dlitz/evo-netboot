@@ -75,6 +75,7 @@ const char *kernel_command_line =
     //" pirq=8,9,10,11"
     //" gxfb.mode_option=1024x768@60"
     //" video=gxfb:1024x768@60"
+    " rootwait root=/dev/sda1 init=/bin/sh"
     " debug loglevel=7"
 //    " acpi=off noapm"
 //    " no-hlt"
