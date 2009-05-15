@@ -94,12 +94,6 @@ get_eip_reg:
         pop     %eax
         ret
 
-.global test_return
-test_return:
-        mov 0x4(%esp), %eax
-        inc %eax
-        ret
-
 xprintf:
         push %ebx
         push %ecx

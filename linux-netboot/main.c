@@ -115,7 +115,6 @@ void init_c(void)
     int x = 1;
     l_print("init_c starting\r\n", 0);
     l_print("stack is in the ballpark of 0x%x\r\n", (uint32_t) &x);
-    l_print("test_return returned 0x%x\r\n", test_return(5));
     dump_regs();
 
     l_print("@0x0400: 0x%04x\r\n", *(uint16_t *)0x0400);
