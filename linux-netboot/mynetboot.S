@@ -43,20 +43,6 @@ set_gdtr:
         lgdt        (%eax)
         ret
 
-.global get_idtr
-get_idtr:
-        mov         0x4(%esp), %eax
-        add         $2, %eax    # skip the _pad member
-        sidt        (%eax)
-        ret
-
-.global set_idtr
-set_idtr:
-        mov         0x4(%esp), %eax
-        add         $2, %eax    # skip the _pad member
-        lidt        (%eax)
-        ret
-
 .global get_cs_reg
 get_cs_reg:
         mov         %cs, %eax
