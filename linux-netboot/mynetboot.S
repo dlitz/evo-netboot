@@ -87,11 +87,10 @@ get_cr4_reg:
         mov         %cr4, %eax
         ret
 
+# get_eip_reg() just returns the return address that is already on the stack.
 .global get_eip_reg
 get_eip_reg:
-        call    1f
-1:
-        pop     %eax
+        mov (%esp), %eax
         ret
 
 xprintf:
