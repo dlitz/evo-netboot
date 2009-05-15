@@ -1,14 +1,17 @@
 #include "printf.h"
-#include "mynetboot.h"
+#include "misc.h"
 
 #include <stddef.h>
 #include <stdint.h>
 
+// Defined in main.c
+extern void (*p_syscall)(unsigned int a, unsigned int b, const void *p, const void *q, const void *r);
+
 int printf(const char *fmt, ...)
 {
     // This invokes the built-in printf function exported by NETXFER on the Evo T30.
-    // The first two arguments means "printf", since p_syscall is also used
-    // for other things.  NOTE: If you are porting this code to another
+    // The first two arguments mean "printf", since p_syscall also provides
+    // other functions.  NOTE: If you are porting this code to another
     // platform, you will probably need to disable this call.
     (*p_syscall)(1, 1, fmt, (&fmt)+1, NULL);
 

@@ -7,11 +7,12 @@
 #include "serial.h"
 #include "segment.h"
 #include "superio.h"
-#include "mynetboot.h"
+#include "misc.h"
+#include "pcspkr.h"
 #include "printf.h"
-
-extern void *bzImage_start;
-extern void load_linux(void);
+#include "loadlinux.h"
+#include "bootlinux.h"
+#include "propaganda.h"
 
 struct segdesc linux_gdt[4];
 
@@ -90,66 +91,63 @@ static void dump_cpuid(void)
     }
 }
 
-void init_c(void)
+// NBI format.  See "Draft Net Boot Image Proposal 0.3, June 15, 1997"
+struct nbi_header {
+    // magic number 0x1b031336 is replaced by pointer to loader 
+    void (*p_syscall)(unsigned int a, unsigned int b, const void *p, const void *q, const void *r);
+    uint32_t flags_and_length;
+    uint32_t header_load_address;   // real-mode address (ds:bx format)
+    uint32_t header_exec_address;   // real-mode address (cs:ip format)
+} __attribute__((packed));
+
+void c_main(struct nbi_header *nbi_header)
 {
-    printf("init_c starting\n");
-    dump_regs();
-
-    printf("@0x0400: 0x%04x\n", *(uint16_t *)0x0400);
-    printf("@0x0402: 0x%04x\n", *(uint16_t *)0x0402);
-    printf("@0x0404: 0x%04x\n", *(uint16_t *)0x0404);
-    printf("@0x0406: 0x%04x\n", *(uint16_t *)0x0406);
-
-    dump_cpuid();
-
-    // PC97307 Super I/O
-    printf("SID(20h)=0x%02x SRID(27h)=0x%02x CR2(22h)=0x%02x\n", superio_inb(0x20), superio_inb(0x27), superio_inb(0x22));
-
-    // Enable  PC97307 UART1
-    superio_select_logical_device(6); // logical device 6 (UART1)
-    superio_outb(superio_inb(0x30) | 1, 0x30);  // UART1.0x30: Activate
-
-    // Serial
-    printf("Setting up serial port 115200 8N1\n");
-    //outb(0x0b, 0x3f8+4);
-    // Set baud rate to 115200 bps (divisor=1)
-    outb(0x80 | inb(0x3f8+3), 0x3f8+3);     // Set LCR:DLAB
-    outb(0x01, 0x3f8);   // low byte
-    outb(0x00, 0x3f8+1);   // high byte
-    outb(~0x80 & inb(0x3f8+3), 0x3f8+3);     // Clear LCR:DLAB
-    // Set 8N1
-    outb(0x03, 0x3f8+3);    // LCR
-
-    // Enable FIFO
-    outb(0xc1, 0x3f8+2);    // FCR
-
-    serial_putc('*');
-    serial_putc('*');
-    serial_putc('*');
-    serial_outstr("Serial port enabled\r\n");
-
     struct gdtr gdtr;
-    get_gdtr(&gdtr);
+
+    // The built-in NETXFER program on the Evo T30 provides several services
+    // to the netboot image via a service routine.  This sets up the function
+    // pointer needed to access the service routine.
+    // NB: The only service we support is printf(), and the following
+    // assignment is necessary before printf() will work.
+    p_syscall = nbi_header->p_syscall;
+
+    // Show a greeting and some propaganda
+    printf("%s", propaganda);
+
+    // Dump some information about the environment we're running in.
+    dump_regs();
+    dump_cpuid();
+    dump_superio();
+
+    // Initialize SuperI/O devices (serial, parallel)
+    superio_init();
+
+    // Dump the build-in global descriptor table (GDT)
+//    printf("Built-in GDT:\n");
+//    get_gdtr(&gdtr);
 //    dump_gdt(gdtr.base, gdtr.limit);
 
-    printf("Creating Linux GDT\n");
+    printf("Setting up Linux-compatible GDT...\n");
     create_linux_gdt(linux_gdt);
     gdtr.base = linux_gdt;
     gdtr.limit = 4*8-1;
     dump_gdt(gdtr.base, gdtr.limit);
     set_gdtr(&gdtr);
 
-    printf("bzImage_start = 0x%08x\n", (uint32_t) bzImage_start);
-
-    printf("Testing writing to low addresses\n");
-    uint32_t volatile * volatile p = (uint32_t *)0x90000;
-    printf("*p = 0x%08x\n", *p);
-    *p = 0xcafebabe;
-    printf("*p = 0x%08x\n", *p);
-
+    // Set up PCI IRQ table (normally provided by a BIOS)
     printf("Creating PCI IRQ table...\n");
     create_pirq_table();
 
-    printf("Loading Linux...\r\n", 0);
+    // Copy Linux to its proper location in memory
+    printf("Loading Linux...\n");
     load_linux();
+
+    // Boot Linux
+    printf("Booting Linux...\n");
+    pcspkr_boot_tune();
+    boot_linux();
+
+    // We should never get here, but if we do, print something.
+    printf("Linux not booted.  c_main() returning.\n");
+    pcspkr_error_tune();
 }

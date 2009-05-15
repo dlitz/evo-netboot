@@ -29,4 +29,8 @@ extern uint32_t get_cr3_reg(void);
 extern uint32_t get_cr4_reg(void);
 extern uint32_t get_eip_reg(void);
 
+// Set in main.c; used in printf.c
+extern void (*p_syscall)(unsigned int a, unsigned int b, const void *p, const void *q, const void *r);
+
+
 #endif

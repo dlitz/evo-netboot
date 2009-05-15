@@ -4,10 +4,8 @@
 #include "memory.h"
 #include "printf.h"
 
-extern void boot_linux(void);
 void *bzImage_start = (void *)0x01080000;
 void *kernel32_entry_point = (void *)0x00100000;
-extern void serial_outstr(const char *s);
 
 struct e820entry {
     uint64_t addr;
@@ -54,80 +52,53 @@ struct boot_params {    // a.k.a. the "zero-page"
 
 struct boot_params boot_params;
 
-//const char *kernel_command_line = "auto";
 const char *kernel_command_line =
     "console=ttyS0,115200 console=tty0 earlyprintk=serial,ttyS0,115200"
-    //" pci=nobios"
-    //" pci=earlydump,noacpi,routeirq,nobios,assign-busses"
     " pci=earlydump"
-    //" irqpoll"
-    //" video=640x480@60m"
-    //" pci=biosirq"
-    //" pirq=8,9,10,11"
-    //" gxfb.mode_option=1024x768@60"
-    //" video=gxfb:1024x768@60"
-    //" rootwait root=LABEL=geo.green ro"
     " rootwait root=/dev/sda1 ro"
     " debug loglevel=7"
-//    " acpi=off noapm"
-//    " no-hlt"
-//    " nolapic"
-//    " idle=poll"
-//    " clocksourcfe=tsc"
-//    " mfgptfix"
-//    " memmap=exactmap"
-//    " memmap=1M$0"
-//    " memmap=15M@1M"
     " memtest=4";
-
-extern void d_print(const char *fmt, uint32_t arg)
-{
-    serial_outstr(fmt);
-    printf(fmt, arg);
-}
 
 void load_linux(void)
 {
     // Load boot_params
-    d_print("Copying boot_params...\r\n", 0);
     struct boot_params *bp = (struct boot_params *)bzImage_start;
     unsigned int bp_size = 0x202 + (bp->jump >> 8);
-    d_print("bp_size = 0x%x\r\n", bp_size);
+    printf(" Copying boot_params (%u bytes)...\n", bp_size);
     memcpy(&boot_params, bp, bp_size);
     bzero(&boot_params, 0x1f1);     /* clear everything up to the setup_header */
     bp = &boot_params;
 
     // Clear the kernel
-    const char *kernel32_start = bzImage_start + (bp->setup_sects+1)*512;
     unsigned int kernel32_size = 16 * bp->syssize;
-    d_print("Clearing buffer for 32-bit kernel...\r\n", 0);
-    d_print("kernel32_entry_point = 0x%08x\r\n", (uint32_t) kernel32_entry_point);
-    d_print("kernel32_size = 0x%08x\r\n", kernel32_size);
-    d_print("bzImage_start = 0x%08x\r\n", (uint32_t) bzImage_start);
+    printf(" Clearing %u bytes at 0x%08x for 32-bit kernel...\n",
+        kernel32_size, (uint32_t) kernel32_size);
     bzero(kernel32_entry_point, kernel32_size);
 
-    {
-        // Dump first few bytes of Linux code
+    // Copy kernel
+    const char *kernel32_start = bzImage_start + (bp->setup_sects+1)*512;
+    printf(" Copying 32-bit kernel code to 0x%08x...\n", (uint32_t) kernel32_start);
+    memcpy(kernel32_entry_point, kernel32_start, kernel32_size);
+
+    // Dump the first few bytes of Linux code
+    if (0) {
         unsigned char *p = (unsigned char *)kernel32_entry_point;
-        d_print("DUMP[0x%08x]:", (uint32_t) p);
+        printf(" DUMP[0x%08x]:", (uint32_t) p);
         for (int i = 0; i < 16; i++) {
-            d_print(" %02x", p[i]);
+            printf(" %02x", p[i]);
         }
-        d_print("\r\n", 0);
+        printf("\n");
     }
 
-    // Copy kernel
-    d_print("Copying 32-bit kernel code...\r\n", 0);
-    memcpy(kernel32_entry_point, kernel32_start, kernel32_size);
-    d_print("bp->setup_sects = 0x%02x\r\n", bp->setup_sects);
-    d_print("bp->syssize = 0x%08x\r\n", bp->syssize);
-    d_print("offsetof setup_sects: 0x%x\r\n", offsetof(struct boot_params, setup_sects));
-    d_print("offsetof syssize: 0x%x\r\n", offsetof(struct boot_params, syssize));
-    d_print("offsetof cmd_line_ptr: 0x%x\r\n", offsetof(struct boot_params, cmd_line_ptr));
+    // Set boot_params
+    printf(" Setting boot_params...\n");
+    bp->vid_mode = 0xffff;      /* vga=normal */
+    bp->type_of_loader = 0xff;  /* other */
+    bp->loadflags = 0x01;  /* LOADED_HIGH, !QUIET_FLAG, !KEEP_SEGMENTS, !CAN_USE_HEAP */
+    bp->cmd_line_ptr = (uint32_t) kernel_command_line;
 
     // Set up zero-page
-    d_print("Setting up zero-page...\r\n", 0);
-    //bp->alt_mem_k = 16*1024;    /* support 16 MiB memory (XXX) */
+    printf(" Setting up fake e820 memory map...\n");
     bp->e820_entries = 0;
 
     /* 0x00000000 - 0x0009efff (636 KiB) usable */
@@ -149,25 +120,4 @@ void load_linux(void)
     bp->e820_map[2].length = 0x01ce0000;
     bp->e820_map[2].type   = 1;
     bp->e820_entries++;
-
-    // Set boot_params
-    d_print("Setting boot_params...\r\n", 0);
-    bp->vid_mode = 0xffff;      /* vga=normal */
-    bp->type_of_loader = 0xff;  /* other */
-    bp->loadflags = 0x01;  /* LOADED_HIGH, !QUIET_FLAG, !KEEP_SEGMENTS, !CAN_USE_HEAP */
-    bp->cmd_line_ptr = (uint32_t) kernel_command_line;
-
-    {
-        // Dump first few bytes of Linux code
-        unsigned char *p = (unsigned char *)kernel32_entry_point;
-        d_print("DUMP[0x%08x]:", (uint32_t) p);
-        for (int i = 0; i < 16; i++) {
-            d_print(" %02x", p[i]);
-        }
-        d_print("\r\n", 0);
-    }
-
-    // Boot Linux
-    d_print("Booting Linux...\r\n", 0);
-    boot_linux();
 }

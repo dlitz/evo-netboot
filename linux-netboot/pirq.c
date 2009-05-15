@@ -1,4 +1,5 @@
 #include "pirq.h"
+#include "memory.h"
 
 // See http://www.microsoft.com/whdc/archive/pciirq.mspx
 // PCI IRQ Routing Table Specification

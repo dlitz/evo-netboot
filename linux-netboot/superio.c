@@ -1,4 +1,7 @@
-// PC97307 Super I/O
+#include "superio.h"
+#include "printf.h"
+
+// PC97307 SuperI/O
 //
 // To access registers on the PC97307, we first write the index of the
 // register to SUPERIO_INDEX_PORT, then read/write the data from/to
@@ -41,3 +44,20 @@ void superio_select_logical_device(uint8_t devno)
     superio_outb(devno, 0x07);  // 07h: logical device number
 }
 
+void dump_superio(void)
+{
+    printf("PC97307 SuperI/O: SID(20h)=0x%02x SRID(27h)=0x%02x CR2(22h)=0x%02x\n", superio_inb(0x20), superio_inb(0x27), superio_inb(0x22));
+}
+
+void superio_init(void)
+{
+    // Enable PC97307 UART1
+    printf("PC97307 SuperI/O: Activating serial port\n");
+    superio_select_logical_device(6); // logical device 6 (UART1)
+    superio_outb(superio_inb(0x30) | 1, 0x30);  // 0x30: Activate
+
+    // Enable parallel port
+    printf("PC97307 SuperI/O: Activating parallel port\n");
+    superio_select_logical_device(6); // logical device 4 (Parallel port)
+    superio_outb(superio_inb(0x30) | 1, 0x30);  // 0x30: Activate
+}

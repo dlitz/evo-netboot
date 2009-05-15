@@ -7,7 +7,21 @@ CFLAGS = $(WARNINGS) -Winit-self -std=c99 -g -O2 -nostdlib -fomit-frame-pointer
 ASFLAGS = $(WARNINGS)
 LDFLAGS = -nostdlib
 
-OBJS = superio.o serial.o segment.o memory.o pirq.o mynetboot.o main.o loadlinux.o bootlinux.o printf.o
+OBJS = \
+	startup.o \
+	misc.o \
+	bootlinux.o \
+	loadlinux.o \
+	memory.o \
+	nbiheader.o \
+	pcspkr.o \
+	pirq.o \
+	printf.o \
+	propaganda.o \
+	segment.o \
+	serial.o \
+	superio.o \
+	main.o
 
 boot.elf: boot.bin
 	../bin2elf.sh boot.bin boot.elf
@@ -19,8 +33,8 @@ boot.bin: kernel.bin nbiheader.bin lowmem.bin bzImage
 	dd if=kernel.bin of=boot.bin bs=512 seek=65 count=64 conv=notrunc
 	dd if=bzImage of=boot.bin bs=512 seek=129 conv=notrunc
 
-nbiheader.bin: kernel.elf
-	objcopy -O binary -j .nbiheader kernel.elf nbiheader.bin
+nbiheader.bin: nbiheader.o
+	objcopy -O binary -j .nbiheader nbiheader.o nbiheader.bin
 
 lowmem.bin: kernel.elf
 	objcopy -O binary -j .lowmem kernel.elf lowmem.bin
