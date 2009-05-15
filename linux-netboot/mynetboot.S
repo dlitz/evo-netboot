@@ -121,16 +121,16 @@ p_syscall:
         .int 0x8888f00d
 
 blah:
-        .asciz "blah\r\n"
+        .asciz "blah\n"
 
 value:
-        .asciz "Value: 0x%x\r\n"
+        .asciz "Value: 0x%x\n"
 
 halting:
-        .asciz "Halting\r\n"
+        .asciz "Halting\n"
 
 returned:
-        .asciz "Returned from init_c\r\n"
+        .asciz "Returned from init_c\n"
 
 .section .nbiheader, "ax"
 # NBI format.  See "Draft Net Boot Image Proposal 0.3, June 15, 1997"

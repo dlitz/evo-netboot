@@ -2,8 +2,8 @@
 #include <stddef.h>
 
 #include "memory.h"
+#include "printf.h"
 
-extern void l_print(const char *fmt, uint32_t arg);
 extern void boot_linux(void);
 void *bzImage_start = (void *)0x01080000;
 void *kernel32_entry_point = (void *)0x00100000;
@@ -83,7 +83,7 @@ const char *kernel_command_line =
 extern void d_print(const char *fmt, uint32_t arg)
 {
     serial_outstr(fmt);
-    l_print(fmt, arg);
+    printf(fmt, arg);
 }
 
 void load_linux(void)

@@ -4,35 +4,31 @@
 #include "portio.h"
 #include "pirq.h"
 #include "memory.h"
+#include "serial.h"
 #include "segment.h"
 #include "superio.h"
 #include "mynetboot.h"
+#include "printf.h"
 
 extern void *bzImage_start;
 extern void load_linux(void);
 
 struct segdesc linux_gdt[4];
 
-/* Invoke the loader's printf-like function */
-void l_print(const char *fmt, uint32_t arg)
-{
-    (*p_syscall)(1, 1, fmt, &arg, (void*)0);
-}
-
 static void dump_regs(void)
 {
-    l_print("CS: 0x%08x\r\n", get_cs_reg());
-    l_print("DS: 0x%08x\r\n", get_ds_reg());
-    l_print("SS: 0x%08x\r\n", get_ss_reg());
-    l_print("ES: 0x%08x\r\n", get_es_reg());
-    l_print("FS: 0x%08x\r\n", get_fs_reg());
-    l_print("GS: 0x%08x\r\n", get_gs_reg());
-    l_print("EFLAGS: 0x%08x\r\n", get_eflags_reg());
-    l_print("EIP (approx): 0x%08x\r\n", get_eip_reg());
-    l_print("CR0: 0x%08x\r\n", get_cr0_reg());
-    l_print("CR2: 0x%08x\r\n", get_cr2_reg());
-    l_print("CR3: 0x%08x\r\n", get_cr3_reg());
-    l_print("CR4: 0x%08x\r\n", get_cr4_reg());
+    printf("CS: 0x%08x\n", get_cs_reg());
+    printf("DS: 0x%08x\n", get_ds_reg());
+    printf("SS: 0x%08x\n", get_ss_reg());
+    printf("ES: 0x%08x\n", get_es_reg());
+    printf("FS: 0x%08x\n", get_fs_reg());
+    printf("GS: 0x%08x\n", get_gs_reg());
+    printf("EFLAGS: 0x%08x\n", get_eflags_reg());
+    printf("EIP (approx): 0x%08x\n", get_eip_reg());
+    printf("CR0: 0x%08x\n", get_cr0_reg());
+    printf("CR2: 0x%08x\n", get_cr2_reg());
+    printf("CR3: 0x%08x\n", get_cr3_reg());
+    printf("CR4: 0x%08x\n", get_cr4_reg());
 }
 
 // Set up a flat memory model for Linux, per the requireents in the "32-bit
@@ -83,8 +79,7 @@ static void dump_cpuid(void)
     cpuid_buf[1] = edx;
     cpuid_buf[2] = ecx;
     cpuid_buf[3] = 0;
-    l_print("CPUID0: EAX=0x%08x", eax);
-    l_print(" \"%s\"\r\n", (uint32_t) cpuid_buf);
+    printf("CPUID0: EAX=0x%08x \"%s\"\n", eax, (char *) cpuid_buf);
 
     // CPUID 1
     eax = 1;
@@ -93,10 +88,7 @@ static void dump_cpuid(void)
         : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
         : "a"(eax)
         );
-    l_print("CPUID1: EAX=0x%08x", eax);
-    l_print(" EBX=0x%08x", ebx);
-    l_print(" ECX=0x%08x", ecx);
-    l_print(" EDX=0x%08x\r\n", edx);
+    printf("CPUID1: EAX=0x%08x EBX=0x%08x ECX=0x%08x EDX=0x%08x\n", eax, ebx, ecx, edx);
 
     // CPUID 2
     eax = 2;
@@ -105,37 +97,32 @@ static void dump_cpuid(void)
         : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
         : "a"(eax)
         );
-    l_print("CPUID2: EAX=0x%08x", eax);
-    l_print(" EBX=0x%08x", ebx);
-    l_print(" ECX=0x%08x", ecx);
-    l_print(" EDX=0x%08x\r\n", edx);
+    printf("CPUID2: EAX=0x%08x EBX=0x%08x ECX=0x%08x EDX=0x%08x\n", eax, ebx, ecx, edx);
 }
 
 void init_c(void)
 {
     int x = 1;
-    l_print("init_c starting\r\n", 0);
-    l_print("stack is in the ballpark of 0x%x\r\n", (uint32_t) &x);
+    printf("init_c starting\n");
+    printf("stack is in the ballpark of 0x%x\n", (uint32_t) &x);
     dump_regs();
 
-    l_print("@0x0400: 0x%04x\r\n", *(uint16_t *)0x0400);
-    l_print("@0x0402: 0x%04x\r\n", *(uint16_t *)0x0402);
-    l_print("@0x0404: 0x%04x\r\n", *(uint16_t *)0x0404);
-    l_print("@0x0406: 0x%04x\r\n", *(uint16_t *)0x0406);
+    printf("@0x0400: 0x%04x\n", *(uint16_t *)0x0400);
+    printf("@0x0402: 0x%04x\n", *(uint16_t *)0x0402);
+    printf("@0x0404: 0x%04x\n", *(uint16_t *)0x0404);
+    printf("@0x0406: 0x%04x\n", *(uint16_t *)0x0406);
 
     dump_cpuid();
 
     // PC97307 Super I/O
-    l_print("SID: 0x%02x\r\n", superio_inb(0x20));
-    l_print("SRID: 0x%02x\r\n", superio_inb(0x27));
-    l_print("Config Reg 2: 0x%02x\r\n", superio_inb(0x22));
+    printf("SID(20h)=0x%02x SRID(27h)=0x%02x CR2(22h)=0x%02x\n", superio_inb(0x20), superio_inb(0x27), superio_inb(0x22));
 
     // Enable  PC97307 UART1
     superio_select_logical_device(6); // logical device 6 (UART1)
     superio_outb(superio_inb(0x30) | 1, 0x30);  // UART1.0x30: Activate
 
     // Serial
-    l_print("Setting up serial port 115200 8N1\r\n", 0);
+    printf("Setting up serial port 115200 8N1\n");
     //outb(0x0b, 0x3f8+4);
     // Set baud rate to 115200 bps (divisor=1)
     outb(0x80 | inb(0x3f8+3), 0x3f8+3);     // Set LCR:DLAB
@@ -157,24 +144,24 @@ void init_c(void)
     get_gdtr(&gdtr);
 //    dump_gdt(gdtr.base, gdtr.limit);
 
-    l_print("Creating Linux GDT\r\n", 0);
+    printf("Creating Linux GDT\n");
     create_linux_gdt(linux_gdt);
     gdtr.base = linux_gdt;
     gdtr.limit = 4*8-1;
     dump_gdt(gdtr.base, gdtr.limit);
     set_gdtr(&gdtr);
 
-    l_print("bzImage_start = 0x%08x\r\n", (uint32_t) bzImage_start);
+    printf("bzImage_start = 0x%08x\n", (uint32_t) bzImage_start);
 
-    l_print("Testing writing to low addresses\r\n", 0);
+    printf("Testing writing to low addresses\n");
     uint32_t volatile * volatile p = (uint32_t *)0x90000;
-    l_print("*p = 0x%08x\r\n", *p);
+    printf("*p = 0x%08x\n", *p);
     *p = 0xcafebabe;
-    l_print("*p = 0x%08x\r\n", *p);
+    printf("*p = 0x%08x\n", *p);
 
-    l_print("Creating PCI IRQ table...\r\n", 0);
+    printf("Creating PCI IRQ table...\n");
     create_pirq_table();
 
-    l_print("Loading Linux...\r\n", 0);
+    printf("Loading Linux...\r\n", 0);
     load_linux();
 }

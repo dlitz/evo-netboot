@@ -1,4 +1,5 @@
 #include "segment.h"
+#include "printf.h"
 
 void get_gdtr(struct gdtr *out)
 {
@@ -20,8 +21,7 @@ void set_gdtr(const struct gdtr *out)
 
 void dump_gdt(void *base, uint16_t limit)
 {
-    l_print("GDT located at base: 0x%08x", (uint32_t) base);
-    l_print(" limit: 0x%04x\r\n", limit);
+    printf("GDT located at base: 0x%08x limit: 0x%04x\n", (uint32_t) base, limit);
     struct segdesc *p = (struct segdesc *)base;
     for (int i = 0; i <= limit; i += 8) {
         dump_segment_descriptor(p);
@@ -34,17 +34,17 @@ void dump_segment_descriptor(struct segdesc *desc)
     uint32_t base, limit;
     limit = desc->limit0 | (desc->limit1) << 16;
     base = desc->base0 | (desc->base1 << 16) | (desc->base2 << 24);
-    l_print("[%08x]", (uint32_t) desc);
-    l_print(" base=0x%08x", base);
-    l_print(" limit=0x%05x", limit);
-    l_print(" AVL=%x", desc->avl);
-    l_print(" D/B=%x", desc->db);
-    l_print(" DPL=%x", desc->dpl);
-    l_print(" G=%x", desc->g);
-    l_print(" P=%x", desc->p);
-    l_print(" S=%x", desc->s);
-    l_print(" TYPE=0x%x", desc->type);
-    l_print("\r\n", 0);
+    printf("[%08x]", (uint32_t) desc);
+    printf(" base=0x%08x", base);
+    printf(" limit=0x%05x", limit);
+    printf(" AVL=%x", desc->avl);
+    printf(" D/B=%x", desc->db);
+    printf(" DPL=%x", desc->dpl);
+    printf(" G=%x", desc->g);
+    printf(" P=%x", desc->p);
+    printf(" S=%x", desc->s);
+    printf(" TYPE=0x%x", desc->type);
+    printf("\n");
 }
 
 void set_desc_base(struct segdesc *desc, void *base)

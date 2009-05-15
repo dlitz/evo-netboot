@@ -7,7 +7,7 @@ CFLAGS = $(WARNINGS) -Winit-self -std=c99 -g -O2 -nostdlib -fomit-frame-pointer
 ASFLAGS = $(WARNINGS)
 LDFLAGS = -nostdlib
 
-OBJS = superio.o serial.o segment.o memory.o pirq.o mynetboot.o main.o loadlinux.o bootlinux.o
+OBJS = superio.o serial.o segment.o memory.o pirq.o mynetboot.o main.o loadlinux.o bootlinux.o printf.o
 
 boot.elf: boot.bin
 	../bin2elf.sh boot.bin boot.elf
