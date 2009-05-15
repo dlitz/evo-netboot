@@ -5,6 +5,7 @@
 #include "pirq.h"
 #include "memory.h"
 #include "segment.h"
+#include "superio.h"
 #include "mynetboot.h"
 
 extern void *bzImage_start;
@@ -122,28 +123,16 @@ void init_c(void)
     l_print("@0x0404: 0x%04x\r\n", *(uint16_t *)0x0404);
     l_print("@0x0406: 0x%04x\r\n", *(uint16_t *)0x0406);
 
-    // PC97307 Super I/O
-#define SUPERIO_PORT 0x15c
-    outb(0x20, SUPERIO_PORT);
-    l_print("SID: 0x%02x\r\n", inb(SUPERIO_PORT+1));
-
-    outb(0x27, SUPERIO_PORT);
-    l_print("SRID: 0x%02x\r\n", inb(SUPERIO_PORT+1));
-
-    outb(0x22, SUPERIO_PORT);
-    l_print("Config Reg 2: 0x%02x\r\n", inb(SUPERIO_PORT+1));
-
     dump_cpuid();
 
-    // Enable  PC97307 UART1
-    uint8_t b;
-    outb(0x7, SUPERIO_PORT);  // 0x07: logical device number
-    outb(6, SUPERIO_PORT+1);  // logical device 6 (UART1)
+    // PC97307 Super I/O
+    l_print("SID: 0x%02x\r\n", superio_inb(0x20));
+    l_print("SRID: 0x%02x\r\n", superio_inb(0x27));
+    l_print("Config Reg 2: 0x%02x\r\n", superio_inb(0x22));
 
-    outb(0x30, SUPERIO_PORT);   // UART1.0x30: Activate
-    b = inb(SUPERIO_PORT+1);
-    b |= 1;     // activate
-    outb(b, SUPERIO_PORT+1);
+    // Enable  PC97307 UART1
+    superio_select_logical_device(6); // logical device 6 (UART1)
+    superio_outb(superio_inb(0x30) | 1, 0x30);  // UART1.0x30: Activate
 
     // Serial
     l_print("Setting up serial port 115200 8N1\r\n", 0);
