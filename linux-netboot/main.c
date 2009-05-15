@@ -120,70 +120,6 @@ static const unsigned char hex[17] = "0123456789abcdef";
 
 #define ROL32(x) (((x) << 1) | (((x) >> 31) & 1))
 
-void dump_flash(void)
-{
-    unsigned char c, *p;
-    uint32_t addr;
-    uint32_t cksum = 0;
-    int i;
-    p = (unsigned char *)(0x00000000);
-    //for (i = 0; i < 0x01000000; i++) {
-    i = 0;
-    do {
-        if ((i & 0x3f) == 0) {
-            serial_putc(';');
-            //serial_putc(hex[(cksum >> 28) & 0xf]);
-            //serial_putc(hex[(cksum >> 24) & 0xf]);
-            //serial_putc(hex[(cksum >> 20) & 0xf]);
-            //serial_putc(hex[(cksum >> 16) & 0xf]);
-            serial_putc(hex[(cksum >> 12) & 0xf]);
-            serial_putc(hex[(cksum >> 8) & 0xf]);
-            serial_putc(hex[(cksum >> 4) & 0xf]);
-            serial_putc(hex[cksum & 0xf]);
-            serial_putc('\n');
-            addr = (uint32_t) p;
-            serial_putc(hex[(addr >> 28) & 0xf]);
-            serial_putc(hex[(addr >> 24) & 0xf]);
-            serial_putc(hex[(addr >> 20) & 0xf]);
-            serial_putc(hex[(addr >> 16) & 0xf]);
-            serial_putc(hex[(addr >> 12) & 0xf]);
-            serial_putc(hex[(addr >> 8) & 0xf]);
-            serial_putc(hex[(addr >> 4) & 0xf]);
-            serial_putc(hex[addr & 0xf]);
-            serial_putc(':');
-        }
-        c = *p;
-        //serial_putc(hex[(c >> 4) & 0xf]);
-        //serial_putc(hex[c & 0xf]);
-        serial_putc(c);
-        cksum = ROL32(cksum) ^ (uint32_t) c;
-        p++;
-    //}
-        i++;
-    } while (p != 0);
-}
-
-void memtest(void)
-{
-    uint32_t volatile * volatile p = 0x01d70000;
-    for (;;) {
-        //l_print("@0x%08x: ", (uint32_t) p);
-        //l_print("0x%08x", (uint32_t) *p);
-        *p = ~(uint32_t) p;
-        //l_print(" 0x%08x", ~(uint32_t) p);
-        //l_print(" 0x%08x", *p);
-        if (*p != ~(uint32_t)p) {
-            l_print("@0x%08x: ", (uint32_t) p);
-            l_print(" FAIL\r\n", 0);
-            for(;;);    // halt
-        } else {
-            //l_print(" ok\r\n", 0);
-        }
-        p += 1;
-        //for (volatile uint32_t j=0; j < 0x00100000; j++);  // delay
-    }
-}
-
 void init_c(void)
 {
     int x = 1;
@@ -239,11 +175,6 @@ void init_c(void)
     serial_putc('*');
     serial_outstr("Serial port enabled\r\n");
 
-    //l_print("Dumping contents of flash to serial port\r\n", 0);
-    //serial_outstr("== FLASH START ==\r\n");
-    //dump_flash();
-    //serial_outstr("\r\n== FLASH DONE ==\r\n");
-
     struct gdtr gdtr;
     get_gdtr(&gdtr);
 //    dump_gdt(gdtr.base, gdtr.limit);
@@ -265,9 +196,6 @@ void init_c(void)
 
     l_print("Creating PCI IRQ table...\r\n", 0);
     create_pirq_table();
-
-//    l_print("Memory test...\r\n", 0);
-//    memtest();
 
     l_print("Loading Linux...\r\n", 0);
     load_linux();
