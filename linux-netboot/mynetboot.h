@@ -31,7 +31,4 @@ extern uint32_t get_eip_reg(void);
 extern struct segdesc real_mode_gdt[5];
 extern struct segdesc linux_gdt[4];
 
-extern void test_16bit(void);
-
-
 #endif

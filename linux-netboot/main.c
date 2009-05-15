@@ -54,46 +54,6 @@ void create_linux_gdt(struct segdesc *gdt)
     gdt[3].type = 0x3; /* data */
 }
 
-void create_real_mode_gdt(struct segdesc *gdt)
-{
-    bzero(gdt, sizeof(struct segdesc)*5);
-    set_desc_base(&gdt[1], 0x00000000);
-    set_desc_limit(&gdt[1], 0xfffff);
-    gdt[1].db = 1;
-    gdt[1].dpl = 0;
-    gdt[1].g = 1;
-    gdt[1].p = 1;
-    gdt[1].s = 1;
-    gdt[1].type = 0xb; /* code */
-
-    set_desc_base(&gdt[2], 0x00000000);
-    set_desc_limit(&gdt[2], 0xfffff);
-    gdt[2].db = 1;
-    gdt[2].dpl = 0;
-    gdt[2].g = 1;
-    gdt[2].p = 1;
-    gdt[2].s = 1;
-    gdt[2].type = 0x3; /* data */
-
-    set_desc_base(&gdt[3], 0x00000000);
-    set_desc_limit(&gdt[3], 0x0ffff);
-    gdt[3].db = 0;      /* 16-bit segment */
-    gdt[3].dpl = 0;
-    gdt[3].g = 0;   /* byte granularity */
-    gdt[3].p = 1;
-    gdt[3].s = 1;
-    gdt[3].type = 0xb; /* code */
-
-    set_desc_base(&gdt[4], 0x00000000);
-    set_desc_limit(&gdt[4], 0x0ffff);
-    gdt[4].db = 0;      /* 16-bit segment */
-    gdt[4].dpl = 0;
-    gdt[4].g = 0;   /* byte granularity */
-    gdt[4].p = 1;
-    gdt[4].s = 1;
-    gdt[4].type = 0x3; /* data */
-}
-
 /* out must point to a buffer of 13 bytes (4*3 regs + 1 NUL) */
 static void dump_cpuid(void)
 {
@@ -311,7 +271,4 @@ void init_c(void)
 
     l_print("Loading Linux...\r\n", 0);
     load_linux();
-
-//    l_print("Calling test_16bit\r\n", 0);
-//    test_16bit();
 }
