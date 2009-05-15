@@ -15,22 +15,6 @@ extern void load_linux(void);
 
 struct segdesc linux_gdt[4];
 
-static void dump_regs(void)
-{
-    printf("CS: 0x%08x\n", get_cs_reg());
-    printf("DS: 0x%08x\n", get_ds_reg());
-    printf("SS: 0x%08x\n", get_ss_reg());
-    printf("ES: 0x%08x\n", get_es_reg());
-    printf("FS: 0x%08x\n", get_fs_reg());
-    printf("GS: 0x%08x\n", get_gs_reg());
-    printf("EFLAGS: 0x%08x\n", get_eflags_reg());
-    printf("EIP (approx): 0x%08x\n", get_eip_reg());
-    printf("CR0: 0x%08x\n", get_cr0_reg());
-    printf("CR2: 0x%08x\n", get_cr2_reg());
-    printf("CR3: 0x%08x\n", get_cr3_reg());
-    printf("CR4: 0x%08x\n", get_cr4_reg());
-}
-
 // Set up a flat memory model for Linux, per the requireents in the "32-bit
 // BOOT PROTOCOL" specified in linux-2.6/Documentation/x86/boot.txt.
 // Linux needs a 4-entry global descriptor table, as follows:
@@ -62,11 +46,23 @@ void create_linux_gdt(struct segdesc *gdt)
     gdt[3].type = 0x3; /* data */
 }
 
-/* out must point to a buffer of 13 bytes (4*3 regs + 1 NUL) */
+static void dump_regs(void)
+{
+    int dummy = 1;
+    printf("CS=%08Xh DS=%08Xh SS=%08Xh ES=%08Xh FS=%08Xh GS=%08Xh\n",
+        get_cs_reg(), get_ds_reg(), get_ss_reg(),
+        get_es_reg(), get_fs_reg(), get_gs_reg());
+    printf("EFLAGS=%08Xh EIP=%08Xh CR0=%08Xh CR3=%08Xh CR4=%08Xh\n",
+        get_eflags_reg(), get_eip_reg(),
+        get_cr0_reg(), get_cr3_reg(), get_cr4_reg());
+    printf("Stack is in the ballpark of 0x%x\n", (uint32_t) &dummy);
+}
+
 static void dump_cpuid(void)
 {
     uint32_t eax, ebx, ecx, edx;
-    uint32_t cpuid_buf[5];
+    uint32_t cpuid_buf[4];
+    uint32_t i, max_std_cpuid_level;
 
     // CPUID 0
     eax = 0;
@@ -78,33 +74,25 @@ static void dump_cpuid(void)
     cpuid_buf[0] = ebx;
     cpuid_buf[1] = edx;
     cpuid_buf[2] = ecx;
-    cpuid_buf[3] = 0;
+    cpuid_buf[3] = 0;   // { '\0', '\0', '\0', '\0' }
+    max_std_cpuid_level = eax;
     printf("CPUID0: EAX=0x%08x \"%s\"\n", eax, (char *) cpuid_buf);
 
-    // CPUID 1
-    eax = 1;
-    __asm__ volatile (
-        "cpuid"
-        : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
-        : "a"(eax)
-        );
-    printf("CPUID1: EAX=0x%08x EBX=0x%08x ECX=0x%08x EDX=0x%08x\n", eax, ebx, ecx, edx);
-
-    // CPUID 2
-    eax = 2;
-    __asm__ volatile (
-        "cpuid"
-        : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
-        : "a"(eax)
-        );
-    printf("CPUID2: EAX=0x%08x EBX=0x%08x ECX=0x%08x EDX=0x%08x\n", eax, ebx, ecx, edx);
+    // Other CPUID info
+    for (i = 1; i <= max_std_cpuid_level; i++) {
+        eax = i;
+        __asm__ volatile (
+            "cpuid"
+            : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+            : "a"(eax)
+            );
+        printf("CPUID%d: EAX=0x%08x EBX=0x%08x ECX=0x%08x EDX=0x%08x\n", i, eax, ebx, ecx, edx);
+    }
 }
 
 void init_c(void)
 {
-    int x = 1;
     printf("init_c starting\n");
-    printf("stack is in the ballpark of 0x%x\n", (uint32_t) &x);
     dump_regs();
 
     printf("@0x0400: 0x%04x\n", *(uint16_t *)0x0400);
