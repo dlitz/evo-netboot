@@ -696,8 +696,8 @@ void init_c(void)
     l_print("Creating PCI IRQ table...\r\n", 0);
     create_pirq_table();
 
-    l_print("Memory test...\r\n", 0);
-    memtest();
+//    l_print("Memory test...\r\n", 0);
+//    memtest();
 
     l_print("Loading Linux...\r\n", 0);
     load_linux();
