@@ -10,6 +10,8 @@
 extern void *bzImage_start;
 extern void load_linux(void);
 
+struct segdesc linux_gdt[4];
+
 /* Invoke the loader's printf-like function */
 void l_print(const char *fmt, uint32_t arg)
 {
@@ -32,6 +34,15 @@ static void dump_regs(void)
     l_print("CR4: 0x%08x\r\n", get_cr4_reg());
 }
 
+// Set up a flat memory model for Linux, per the requireents in the "32-bit
+// BOOT PROTOCOL" specified in linux-2.6/Documentation/x86/boot.txt.
+// Linux needs a 4-entry global descriptor table, as follows:
+//   Entry    Description
+//   -------+-------------------------------------------------
+//   GDT[0]   Standard IA-32 empty GDT entry
+//   GDT[1]   *don't care*
+//   GDT[2]   __BOOT_CS(%cs=0x10): 4 GiB flat segment, execute/read perms
+//   GDT[3]   __BOOT_DS(%ds=%es=%ss=0x18): 4 GiB flat segment, read/write perms
 void create_linux_gdt(struct segdesc *gdt)
 {
     bzero(gdt, sizeof(struct segdesc)*4);

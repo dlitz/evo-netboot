@@ -28,7 +28,5 @@ extern uint32_t get_cr2_reg(void);
 extern uint32_t get_cr3_reg(void);
 extern uint32_t get_cr4_reg(void);
 extern uint32_t get_eip_reg(void);
-extern struct segdesc real_mode_gdt[5];
-extern struct segdesc linux_gdt[4];
 
 #endif

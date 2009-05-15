@@ -138,10 +138,6 @@ halting:
 returned:
         .asciz "Returned from init_c\r\n"
 
-.global linux_gdt
-linux_gdt:
-    .fill 4, 8, 0x00    # There is room for 4 GDT entries here. Increase if necessary
-
 .section .nbiheader, "ax"
 # NBI format.  See "Draft Net Boot Image Proposal 0.3, June 15, 1997"
 
