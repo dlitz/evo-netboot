@@ -1,5 +1,6 @@
 #include "superio.h"
 #include "printf.h"
+#include "portio.h"
 
 // PC97307 SuperI/O
 //
@@ -23,9 +24,7 @@
 #define SUPERIO_SID_REG 0x20    // SID register
 #define SUPERIO_SRID_REG 0x27    // SRID register (PC97307 only)
 
-
-#include "portio.h"
-#include "superio.h"
+uint16_t gpio_io_base_port;
 
 uint8_t superio_inb(uint8_t index)
 {
@@ -60,4 +59,10 @@ void superio_init(void)
     printf("PC97307 SuperI/O: Activating parallel port\n");
     superio_select_logical_device(6); // logical device 4 (Parallel port)
     superio_outb(superio_inb(0x30) | 1, 0x30);  // 0x30: Activate
+
+    // Determine the I/O base address for GPIO.  This will have already been
+    // set by NETXFER.
+    superio_select_logical_device(7);   // Logical device 7: GPIO
+    gpio_io_base_port = (superio_inb(0x60) << 8) | superio_inb(0x61);
+    printf("PC97307 SuperI/O: GPIO I/O base port: 0x%04x\n", gpio_io_base_port);
 }

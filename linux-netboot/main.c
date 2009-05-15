@@ -10,6 +10,7 @@
 #include "misc.h"
 #include "pcspkr.h"
 #include "printf.h"
+#include "led.h"
 #include "loadlinux.h"
 #include "bootlinux.h"
 #include "propaganda.h"
@@ -122,6 +123,9 @@ void c_main(struct nbi_header *nbi_header)
     // Initialize SuperI/O devices (serial, parallel)
     superio_init();
 
+    // Set the power-button LED to amber (it should be this colour already)
+    led_set(LED_AMBER);
+
     // Dump the build-in global descriptor table (GDT)
 //    printf("Built-in GDT:\n");
 //    get_gdtr(&gdtr);
@@ -145,9 +149,11 @@ void c_main(struct nbi_header *nbi_header)
     // Boot Linux
     printf("Booting Linux...\n");
     pcspkr_boot_tune();
+    led_set(LED_GREEN);
     boot_linux();
 
     // We should never get here, but if we do, print something.
+    led_set(LED_AMBER);
     printf("Linux not booted.  c_main() returning.\n");
     pcspkr_error_tune();
 }

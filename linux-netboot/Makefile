@@ -11,6 +11,7 @@ OBJS = \
 	startup.o \
 	misc.o \
 	bootlinux.o \
+	led.o \
 	loadlinux.o \
 	memory.o \
 	nbiheader.o \
