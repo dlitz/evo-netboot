@@ -26,8 +26,8 @@ lowmem.bin: kernel.elf
 kernel.bin: kernel.elf
 	objcopy -O binary -j .text kernel.elf kernel.bin
 
-kernel.elf: memory.o pirq.o mynetboot.o main.o loadlinux.o bootlinux.o i386-netboot.ld
-	$(CC) memory.o pirq.o mynetboot.o main.o loadlinux.o bootlinux.o -o kernel.elf -T i386-netboot.ld $(LDFLAGS)
+kernel.elf: segment.o memory.o pirq.o mynetboot.o main.o loadlinux.o bootlinux.o i386-netboot.ld
+	$(CC) segment.o memory.o pirq.o mynetboot.o main.o loadlinux.o bootlinux.o -o kernel.elf -T i386-netboot.ld $(LDFLAGS)
 
 %.o: %.S
 	$(CC) $(ASFLAGS) -c -o $@ $<
@@ -36,7 +36,7 @@ kernel.elf: memory.o pirq.o mynetboot.o main.o loadlinux.o bootlinux.o i386-netb
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -f memory.o pirq.o mynetboot.o main.o loadlinux.o bootlinux.o kernel.elf kernel.bin boot.bin boot.elf nbiheader.bin lowmem.bin
+	rm -f segment.o memory.o pirq.o mynetboot.o main.o loadlinux.o bootlinux.o kernel.elf kernel.bin boot.bin boot.elf nbiheader.bin lowmem.bin
 
 .PHONY: clean
 

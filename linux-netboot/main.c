@@ -4,6 +4,7 @@
 #include "portio.h"
 #include "pirq.h"
 #include "memory.h"
+#include "segment.h"
 #include "mynetboot.h"
 
 extern void *bzImage_start;
@@ -13,35 +14,6 @@ extern void load_linux(void);
 void l_print(const char *fmt, uint32_t arg)
 {
     (*p_syscall)(1, 1, fmt, &arg, (void*)0);
-}
-
-static void dump_segment_descriptor(struct segdesc *desc)
-{
-    uint32_t base, limit;
-    limit = desc->limit0 | (desc->limit1) << 16;
-    base = desc->base0 | (desc->base1 << 16) | (desc->base2 << 24);
-    l_print("[%08x]", (uint32_t) desc);
-    l_print(" base=0x%08x", base);
-    l_print(" limit=0x%05x", limit);
-    l_print(" AVL=%x", desc->avl);
-    l_print(" D/B=%x", desc->db);
-    l_print(" DPL=%x", desc->dpl);
-    l_print(" G=%x", desc->g);
-    l_print(" P=%x", desc->p);
-    l_print(" S=%x", desc->s);
-    l_print(" TYPE=0x%x", desc->type);
-    l_print("\r\n", 0);
-}
-
-static void dump_gdt(void *base, uint16_t limit)
-{
-    l_print("GDT located at base: 0x%08x", (uint32_t) base);
-    l_print(" limit: 0x%04x\r\n", limit);
-    struct segdesc *p = (struct segdesc *)base;
-    for (int i = 0; i <= limit; i += 8) {
-        dump_segment_descriptor(p);
-        p++;
-    }
 }
 
 static void dump_regs(void)
@@ -58,20 +30,6 @@ static void dump_regs(void)
     l_print("CR2: 0x%08x\r\n", get_cr2_reg());
     l_print("CR3: 0x%08x\r\n", get_cr3_reg());
     l_print("CR4: 0x%08x\r\n", get_cr4_reg());
-}
-
-static void set_desc_base(struct segdesc *desc, void *base)
-{
-    uint32_t addr = (uint32_t)base;
-    desc->base0 = addr & 0xffff;
-    desc->base1 = (addr >> 16) & 0xff;
-    desc->base2 = (addr >> 24) & 0xff;
-}
-
-static void set_desc_limit(struct segdesc *desc, uint32_t limit)
-{
-    desc->limit0 = limit & 0xffff;
-    desc->limit1 = (limit >> 16) & 0xf;
 }
 
 void create_linux_gdt(struct segdesc *gdt)

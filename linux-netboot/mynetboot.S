@@ -31,20 +31,6 @@ halt:
 real_halt:
         jmp     real_halt
 
-.global get_gdtr
-get_gdtr:
-        mov         0x4(%esp), %eax
-        add         $2, %eax    # skip the _pad member
-        sgdt        (%eax)
-        ret
-
-.global set_gdtr
-set_gdtr:
-        mov         0x4(%esp), %eax
-        add         $2, %eax    # skip the _pad member
-        lgdt        (%eax)
-        ret
-
 .global get_cs_reg
 get_cs_reg:
         mov         %cs, %eax
