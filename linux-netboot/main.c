@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "portio.h"
 #include "pirq.h"
+#include "memory.h"
 #include "mynetboot.h"
 
 extern void *bzImage_start;
@@ -57,16 +58,6 @@ static void dump_regs(void)
     l_print("CR2: 0x%08x\r\n", get_cr2_reg());
     l_print("CR3: 0x%08x\r\n", get_cr3_reg());
     l_print("CR4: 0x%08x\r\n", get_cr4_reg());
-}
-
-void bzero(void *s, unsigned int n)
-{
-    unsigned char *p = (unsigned char *)s;
-    while (n > 0) {
-        *p = '\0';
-        p++;
-        n--;
-    }
 }
 
 static void set_desc_base(struct segdesc *desc, void *base)
