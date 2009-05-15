@@ -69,13 +69,8 @@ void load_linux(void)
     bzero(&boot_params, 0x1f1);     /* clear everything up to the setup_header */
     bp = &boot_params;
 
-    // Clear the kernel
-    unsigned int kernel32_size = 16 * bp->syssize;
-    printf(" Clearing %u bytes at 0x%08x for 32-bit kernel...\n",
-        kernel32_size, (uint32_t) kernel32_size);
-    bzero(kernel32_entry_point, kernel32_size);
-
     // Copy kernel
+    unsigned int kernel32_size = 16 * bp->syssize;
     const char *kernel32_start = bzImage_start + (bp->setup_sects+1)*512;
     printf(" Copying 32-bit kernel code to 0x%08x...\n", (uint32_t) kernel32_start);
     memcpy(kernel32_entry_point, kernel32_start, kernel32_size);
