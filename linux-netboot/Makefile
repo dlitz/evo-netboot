@@ -7,6 +7,8 @@ CFLAGS = $(WARNINGS) -Winit-self -std=c99 -g -O2 -nostdlib -fomit-frame-pointer
 ASFLAGS = $(WARNINGS)
 LDFLAGS = -nostdlib
 
+OBJS = superio.o serial.o segment.o memory.o pirq.o mynetboot.o main.o loadlinux.o bootlinux.o
+
 boot.elf: boot.bin
 	../bin2elf.sh boot.bin boot.elf
 
@@ -26,8 +28,8 @@ lowmem.bin: kernel.elf
 kernel.bin: kernel.elf
 	objcopy -O binary -j .text kernel.elf kernel.bin
 
-kernel.elf: superio.o serial.o segment.o memory.o pirq.o mynetboot.o main.o loadlinux.o bootlinux.o i386-netboot.ld
-	$(CC) superio.o serial.o segment.o memory.o pirq.o mynetboot.o main.o loadlinux.o bootlinux.o -o kernel.elf -T i386-netboot.ld $(LDFLAGS)
+kernel.elf: $(OBJS) i386-netboot.ld
+	$(CC) -o kernel.elf $(OBJS) -T i386-netboot.ld $(LDFLAGS)
 
 %.o: %.S
 	$(CC) $(ASFLAGS) -c -o $@ $<
@@ -36,7 +38,7 @@ kernel.elf: superio.o serial.o segment.o memory.o pirq.o mynetboot.o main.o load
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -f superio.o serial.o segment.o memory.o pirq.o mynetboot.o main.o loadlinux.o bootlinux.o kernel.elf kernel.bin boot.bin boot.elf nbiheader.bin lowmem.bin
+	rm -f $(OBJS) kernel.elf kernel.bin boot.bin boot.elf nbiheader.bin lowmem.bin
 
 .PHONY: clean
 
