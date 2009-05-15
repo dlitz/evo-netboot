@@ -1,5 +1,5 @@
 .arch i486
-.section .text, "ax"
+.section .startup, "ax"
 .global _start
 _start:
         popl    entry_arg1
@@ -20,6 +20,8 @@ _start:
         mov     $0, %eax
         mov     $returned, %ebx
         call    xprintf
+
+.section .text, "ax"
 
 .global halt
 halt:

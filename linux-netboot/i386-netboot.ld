@@ -15,6 +15,7 @@ SECTIONS
   .nbiheader : { *(.nbiheader) } > nbiheader
   .lowmem : { *(.lowmem) } > lowmem
   .text : {
+    *(.startup)
     *(.text)
     *(.rodata)
     *(.rodata.*)
