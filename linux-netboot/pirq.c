@@ -119,19 +119,15 @@ static bool isa_get_irq_edge(unsigned int irq)
 }
 
 static void pci_set_inta_irq(unsigned int irq) {
-    isa_set_irq_edge(irq, false);
     PCI_F0_OUT8(0x5c, (PCI_F0_IN8(0x5c) & 0xf0) | irq);
 }
 static void pci_set_intb_irq(unsigned int irq) {
-    isa_set_irq_edge(irq, false);
     PCI_F0_OUT8(0x5c, (PCI_F0_IN8(0x5c) & 0x0f) | (irq << 4));
 }
 static void pci_set_intc_irq(unsigned int irq) {
-    isa_set_irq_edge(irq, false);
     PCI_F0_OUT8(0x5d, (PCI_F0_IN8(0x5d) & 0xf0) | irq);
 }
 static void pci_set_intd_irq(unsigned int irq) {
-    isa_set_irq_edge(irq, false);
     PCI_F0_OUT8(0x5d, (PCI_F0_IN8(0x5d) & 0x0f) | (irq << 4));
 }
 
@@ -166,11 +162,6 @@ static unsigned int pci_get_intd_irq(void) {
 // (Updated: December 4, 2001)
 void create_pirq_table(void)
 {
-    pci_get_inta_irq();
-    pci_get_intb_irq();
-    pci_get_intc_irq();
-    pci_get_intd_irq();
-
     // Clear existing IRQ settings to force Linux to configure them
     pci_set_inta_irq(0);
     pci_set_intb_irq(0);
@@ -184,7 +175,7 @@ void create_pirq_table(void)
     t->table_size = 32 + PIRQ_NUM_SLOTS*16;
     t->irq_router_bus = 0;
     t->irq_router_devfunc = 0x90; // CS5530A: F0 Bridge Configuration
-    t->exclusive_irq = (1<<5)|(1<<10)|(1<<11); // IRQs exclusive to PCI: 5, 10, 11
+    t->exclusive_irq = (1<<5)|(1<<9)|(1<<10)|(1<<11); // IRQs exclusive to PCI: 5, 10, 11
     //t->exclusive_irq = 0;  // IRQs exclusive to PCI: none
     t->irq_router_compat_vendor_id = 0x1078;    // PCI_VENDOR_ID_CYRIX
     t->irq_router_compat_device_id = 0x0002;    // PCI_DEVICE_ID_CYRIX_5520
@@ -264,7 +255,8 @@ void create_pirq_table(void)
     // (e.g. natsemi, ohci_hcd, ehci_hcd) will claim whatever non-zero IRQ
     // value is stored in the register, rather than the interrupt that
     // actually gets triggered by the hardware.  Setting these to zero seems
-    // to force Linux to determine the IRQs via the interrupt steering registers.
+    // to force Linux to determine the IRQs via the interrupt steering
+    // registers.
     for (unsigned int i = 0; i < PIRQ_NUM_SLOTS; i++) {
         pci_config_out8(t->slots[i].pci_bus, t->slots[i].pci_devfunc, CFGINT, 0);
     }

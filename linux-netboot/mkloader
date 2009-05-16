@@ -68,12 +68,16 @@ else:
 # Create fake e820 memory map
 # Entries are given as: (address64, length64, type32)
 e820_map = ""
-# e820: 0x00000000 - 0x0009efff (636 KiB) usable
-e820_map += struct.pack("<QQL", 0x00000000, 0x0009f000, 1)
-# e820: 0x0009f000 - 0x0009ffff (4 KiB) reserved
-e820_map += struct.pack("<QQL", 0x0009f000, 0x00001000, 2)
-# e820: 0x000a0000 - 0x01d7ffff (29.5 MiB less 640 KiB) usable
-e820_map += struct.pack("<QQL", 0x000a0000, 0x01ce0000, 1)
+# e820: 0x00000000 - 0x01ffffff (32 MiB) usable (but see below)
+e820_map += struct.pack("<QQL", 0x00000000, 0x02000000, 1)
+# e820: 0x00000000 - 0x0001ffff (128 KiB) reserved (Low memory, just in case)
+e820_map += struct.pack("<QQL", 0x00000000, 0x00020000, 2)
+# e820: 0x000a0000 - 0x000cffff (192 KiB) reserved (Video BIOS, just in case)
+e820_map += struct.pack("<QQL", 0x000a0000, 0x00030000, 2)
+# e820: 0x000e0000 - 0x000fffff (128 KiB) reserved (BIOS, just in case)
+e820_map += struct.pack("<QQL", 0x000e0000, 0x00020000, 2)
+# e820: 0x01d80000 - 0x01ffffff (2.5 MiB) reserved (Necessary; Not writable)
+e820_map += struct.pack("<QQL", 0x01d80000, 0x00280000, 2)
 
 # NBI header record
 header = struct.pack("<LLLL",
