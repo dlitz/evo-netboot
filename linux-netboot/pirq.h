@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define PIRQ_NUM_SLOTS 7
+#define PIRQ_NUM_SLOTS 8
 
 struct pirq_slot {
     uint8_t pci_bus;
