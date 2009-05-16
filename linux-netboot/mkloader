@@ -109,6 +109,7 @@ header += struct.pack("<LLLL",
     p,                  # Load address (32-bit linear address)
     len(initrd_data),   # Image length in bytes
     len(initrd_data))   # Memory length in bytes
+p += len(initrd_data)
 
 # fake e820 memory map
 p = (p & ~0xfff) + 0x1000   # Align to 4096-byte boundary
@@ -117,6 +118,7 @@ header += struct.pack("<LLLL",
     p,                  # Load address (32-bit linear address)
     len(e820_map),      # Image length in bytes
     len(e820_map))      # Memory length in bytes
+p += len(e820_map)
 
 header += "\0" * (512 - len(header) - 16) # padding
 header += struct.pack("<xxxBLHxxxxxx",
