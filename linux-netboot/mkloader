@@ -4,9 +4,16 @@ import sys
 import getopt
 import struct
 
+# Vendor flags
+DEBUG_FLAG = (1 << 8)       # Set this on the loader.bin record to enable debugging
+
 def exit_usage():
     sys.stderr.write("""
-Usage: %s -o FILE [ -L loader.bin ] [ -c cmdline ] bzImage [initrd]
+Usage: %s [-d] -o FILE [ -L loader.bin ] [ -c cmdline ] bzImage [initrd]
+
+  -d            Enable debugging output during boot-up
+  -L FILE       Use FILE as the bootloader binary
+  -c CMDLINE    Set the kernel command-line to CMDLINE
 """.lstrip() % (sys.argv[0],))
     sys.exit(2)
 
@@ -15,9 +22,10 @@ loader_filename = "loader.bin"
 load_address = 0x01000000
 cmdline = "auto"
 output_filename = None
+debug_mode = False
 
 # Parse command-line
-(options, args) = getopt.getopt(sys.argv[1:], "o:L:c:")
+(options, args) = getopt.getopt(sys.argv[1:], "do:L:c:")
 
 # Handle arguments
 if len(args) == 1:
@@ -36,6 +44,8 @@ for (opt, value) in options:
         loader_filename = value
     elif opt == '-c':
         cmdline = value.replace("\r\n", " ").replace("\n", " ")
+    elif opt == '-d':
+        debug_mode = True
     else:
         raise AssertionError("BUG: Unrecognized option %r=%r" % (opt, value))
 
@@ -77,8 +87,10 @@ p = load_address
 
 # loader.bin - must be loaded at load_address
 assert p == load_address
+ftl = 0x00000004
+if debug_mode: ftl = 0x00000004 | DEBUG_FLAG
 header += struct.pack("<LLLL",
-    0x00000004,         # FIXME: tags
+    ftl,                # flags, tags, lengths
     p,                  # Load address (32-bit linear address)
     len(loader_data),   # Image length in bytes
     len(loader_data))   # Memory length in bytes
@@ -87,7 +99,7 @@ p += len(loader_data)
 # cmdline - kernel command line
 cmdline += "\0" # Append NUL to end of string
 header += struct.pack("<LLLL",
-    0x00000004,         # FIXME: tags
+    0x00000004,         # flags, tags, lengths
     p,                  # Load address (32-bit linear address)
     len(cmdline),       # Image length in bytes
     len(cmdline))       # Memory length in bytes
@@ -96,7 +108,7 @@ p += len(cmdline)
 # bzImage
 p = (p & ~0xfff) + 0x1000   # Align to 4096-byte boundary
 header += struct.pack("<LLLL",
-    0x00000004,         # FIXME: tags
+    0x00000004,         # flags, tags, lengths
     p,                  # Load address (32-bit linear address)
     len(bzImage_data),  # Image length in bytes
     len(bzImage_data))  # Memory length in bytes
@@ -105,7 +117,7 @@ p += len(bzImage_data)
 # initrd
 p = (p & ~0xfff) + 0x1000   # Align to 4096-byte boundary
 header += struct.pack("<LLLL",
-    0x00000004,         # FIXME: tags
+    0x00000004,         # flags, tags, lengths
     p,                  # Load address (32-bit linear address)
     len(initrd_data),   # Image length in bytes
     len(initrd_data))   # Memory length in bytes
@@ -114,7 +126,7 @@ p += len(initrd_data)
 # fake e820 memory map
 p = (p & ~0xfff) + 0x1000   # Align to 4096-byte boundary
 header += struct.pack("<LLLL",
-    0x04000004,         # FIXME: tags
+    0x04000004,         # flags, tags, lengths
     p,                  # Load address (32-bit linear address)
     len(e820_map),      # Image length in bytes
     len(e820_map))      # Memory length in bytes

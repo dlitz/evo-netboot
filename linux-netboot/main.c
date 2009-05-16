@@ -1,6 +1,4 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
+#include "main.h"
 #include "portio.h"
 #include "pirq.h"
 #include "memory.h"
@@ -15,7 +13,14 @@
 #include "bootlinux.h"
 #include "propaganda.h"
 
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
+
 struct segdesc linux_gdt[4];
+bool debug_mode = false;
+
+#define DEBUG_FLAG (1u<<8)
 
 // Set up a flat memory model for Linux, per the requireents in the "32-bit
 // BOOT PROTOCOL" specified in linux-2.6/Documentation/x86/boot.txt.
@@ -126,6 +131,7 @@ void c_main(struct nbi_header *nbi_header)
         // NB: The order here must match the order in mkloader
         switch(i) {
         case 0: // loader.bin
+            debug_mode = (nbi_header->entries[0].ftl & DEBUG_FLAG) ? true : false;
             break;
         case 1: // cmdline
             kernel_command_line = (char *)nbi_header->entries[i].load_address;
@@ -163,9 +169,11 @@ void c_main(struct nbi_header *nbi_header)
     }
 
     // Dump some information about the environment we're running in.
-    dump_regs();
-    dump_cpuid();
-    dump_superio();
+    if (debug_mode) {
+        dump_regs();
+        dump_cpuid();
+        dump_superio();
+    }
 
     // Initialize SuperI/O devices (serial, parallel)
     superio_init();
@@ -178,15 +186,15 @@ void c_main(struct nbi_header *nbi_header)
 //    get_gdtr(&gdtr);
 //    dump_gdt(gdtr.base, gdtr.limit);
 
-    printf("Setting up Linux-compatible GDT...\n");
+    if (debug_mode) printf("Setting up Linux-compatible GDT...\n");
     create_linux_gdt(linux_gdt);
     gdtr.base = linux_gdt;
     gdtr.limit = 4*8-1;
-    dump_gdt(gdtr.base, gdtr.limit);
+    if (debug_mode) dump_gdt(gdtr.base, gdtr.limit);
     set_gdtr(&gdtr);
 
     // Set up PCI IRQ table (normally provided by a BIOS)
-    printf("Creating PCI IRQ table...\n");
+    if (debug_mode) printf("Creating PCI IRQ table...\n");
     create_pirq_table();
 
     // Copy Linux to its proper location in memory

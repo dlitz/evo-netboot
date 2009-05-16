@@ -1,9 +1,10 @@
-#include <stddef.h>
-
 #include "loadlinux.h"
 #include "memory.h"
 #include "printf.h"
+#include "main.h"
 #include "misc.h"
+
+#include <stddef.h>
 
 void *bzImage_start = NULL;
 void *initrd_start = NULL;
@@ -66,7 +67,7 @@ void load_linux(void)
     // Load boot_params
     struct boot_params *bp = (struct boot_params *)bzImage_start;
     unsigned int bp_size = 0x202 + (bp->jump >> 8);
-    printf(" Copying boot_params (%u bytes)...\n", bp_size);
+    if (debug_mode) printf(" Copying boot_params (%u bytes)...\n", bp_size);
     memcpy(&boot_params, bp, bp_size);
     bzero(&boot_params, 0x1f1);     /* clear everything up to the setup_header */
     bp = &boot_params;
@@ -74,7 +75,8 @@ void load_linux(void)
     // Copy kernel
     unsigned int kernel32_size = 16 * bp->syssize;
     const char *kernel32_start = bzImage_start + (bp->setup_sects+1)*512;
-    printf(" Copying 32-bit kernel code to 0x%08x...\n", (uint32_t) kernel32_start);
+    if (debug_mode)
+        printf(" Copying 32-bit kernel code to 0x%08x...\n", (uint32_t) kernel32_start);
     memcpy(kernel32_entry_point, kernel32_start, kernel32_size);
 
     // Dump the first few bytes of Linux code
@@ -88,7 +90,7 @@ void load_linux(void)
     }
 
     // Set boot_params
-    printf(" Setting boot_params...\n");
+    if (debug_mode) printf(" Setting boot_params...\n");
     bp->vid_mode = 0xffff;      /* vga=normal */
     bp->type_of_loader = 0xff;  /* other */
     bp->loadflags = 0x01;  /* LOADED_HIGH, !QUIET_FLAG, !KEEP_SEGMENTS, !CAN_USE_HEAP */
@@ -97,7 +99,7 @@ void load_linux(void)
     bp->ramdisk_size = initrd_size;
 
     // Set up e820 map
-    printf(" Setting up fake e820 memory map...\n");
+    if (debug_mode) printf(" Setting up fake e820 memory map...\n");
     if (e820_size > 128*sizeof(struct e820entry)) {
         printf(" Error: e820_size 0x%08x too large\n", e820_size);
         abort();

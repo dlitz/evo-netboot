@@ -1,6 +1,7 @@
 #include "superio.h"
 #include "printf.h"
 #include "portio.h"
+#include "main.h"
 
 // PC97307 SuperI/O
 //
@@ -51,12 +52,12 @@ void dump_superio(void)
 void superio_init(void)
 {
     // Enable PC97307 UART1
-    printf("PC97307 SuperI/O: Activating serial port\n");
+    if (debug_mode) printf("PC97307 SuperI/O: Activating serial port\n");
     superio_select_logical_device(6); // logical device 6 (UART1)
     superio_outb(superio_inb(0x30) | 1, 0x30);  // 0x30: Activate
 
     // Enable parallel port
-    printf("PC97307 SuperI/O: Activating parallel port\n");
+    if (debug_mode) printf("PC97307 SuperI/O: Activating parallel port\n");
     superio_select_logical_device(6); // logical device 4 (Parallel port)
     superio_outb(superio_inb(0x30) | 1, 0x30);  // 0x30: Activate
 
@@ -64,5 +65,5 @@ void superio_init(void)
     // set by NETXFER.
     superio_select_logical_device(7);   // Logical device 7: GPIO
     gpio_io_base_port = (superio_inb(0x60) << 8) | superio_inb(0x61);
-    printf("PC97307 SuperI/O: GPIO I/O base port: 0x%04x\n", gpio_io_base_port);
+    if (debug_mode) printf("PC97307 SuperI/O: GPIO I/O base port: 0x%04x\n", gpio_io_base_port);
 }
