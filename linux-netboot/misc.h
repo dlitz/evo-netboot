@@ -15,7 +15,6 @@ struct intdesc {
 
 extern void (*p_syscall)(unsigned int a, unsigned int b, const void *p, const void *q, const void *r);
 
-extern unsigned int test_return(unsigned int a);
 extern uint32_t get_cs_reg(void);
 extern uint32_t get_ds_reg(void);
 extern uint32_t get_ss_reg(void);
