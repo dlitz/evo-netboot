@@ -27,20 +27,20 @@ OBJS = \
 boot.elf: boot.bin
 	../bin2elf.sh boot.bin boot.elf
 
-boot.bin: kernel.bin nbiheader.bin bzImage
+boot.bin: loader.bin nbiheader.bin bzImage
 	dd if=/dev/zero of=boot.bin bs=512 count=8321
 	dd if=nbiheader.bin of=boot.bin bs=512 count=1 conv=notrunc
-	dd if=kernel.bin of=boot.bin bs=512 seek=65 count=64 conv=notrunc
+	dd if=loader.bin of=boot.bin bs=512 seek=65 count=64 conv=notrunc
 	dd if=bzImage of=boot.bin bs=512 seek=129 conv=notrunc
 
 nbiheader.bin: nbiheader.o
 	objcopy -O binary -j .nbiheader nbiheader.o nbiheader.bin
 
-kernel.bin: kernel.elf
-	objcopy -O binary -j .text kernel.elf kernel.bin
+loader.bin: loader.elf
+	objcopy -O binary -j .text loader.elf loader.bin
 
-kernel.elf: $(OBJS) i386-netboot.ld
-	$(CC) -o kernel.elf $(OBJS) -T i386-netboot.ld $(LDFLAGS)
+loader.elf: $(OBJS) i386-netboot.ld
+	$(CC) -o $@ $(OBJS) -T i386-netboot.ld $(LDFLAGS)
 
 %.o: %.S
 	$(CC) $(ASFLAGS) -c -o $@ $<
@@ -49,7 +49,7 @@ kernel.elf: $(OBJS) i386-netboot.ld
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -f $(OBJS) kernel.elf kernel.bin boot.bin boot.elf nbiheader.bin
+	rm -f $(OBJS) loader.elf loader.bin boot.bin boot.elf nbiheader.bin
 
 .PHONY: clean
 
