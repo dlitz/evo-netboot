@@ -140,9 +140,17 @@ void c_main(struct nbi_header *nbi_header)
         case 3: // initial ramdisk
             initrd_start = (void *)nbi_header->entries[i].load_address;
             initrd_size = nbi_header->entries[i].memory_length;
-            printf("initrd: %d bytes at 0x%08x\n",
-                initrd_size,
-                (uint32_t) initrd_start);
+            if (initrd_size == 0) {
+                initrd_start = NULL;
+            } else {
+                printf("initrd: %d bytes at 0x%08x\n",
+                    initrd_size,
+                    (uint32_t) initrd_start);
+            }
+            break;
+        case 4:     // e820 memory map
+            e820_start = (void *)nbi_header->entries[i].load_address;
+            e820_size = nbi_header->entries[i].memory_length;
             break;
         default:
             ; // do nothing

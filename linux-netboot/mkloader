@@ -51,9 +51,19 @@ bzImage_data = open(bzImage_filename, "rb").read()
 
 # Read the initial ramdisk
 if initrd_filename is None:
-    initrd_data = None
+    initrd_data = ""
 else:
     initrd_data = open(initrd_filename, "rb").read()
+
+# Create fake e820 memory map
+# Entries are given as: (address64, length64, type32)
+e820_map = ""
+# e820: 0x00000000 - 0x0009efff (636 KiB) usable
+e820_map += struct.pack("<QQL", 0x00000000, 0x0009f000, 1)
+# e820: 0x0009f000 - 0x0009ffff (4 KiB) reserved
+e820_map += struct.pack("<QQL", 0x0009f000, 0x00001000, 2)
+# e820: 0x000a0000 - 0x01d7ffff (29.5 MiB less 640 KiB) usable
+e820_map += struct.pack("<QQL", 0x000a0000, 0x01ce0000, 1)
 
 # NBI header record
 header = struct.pack("<LLLL",
@@ -84,26 +94,29 @@ header += struct.pack("<LLLL",
 p += len(cmdline)
 
 # bzImage
-if initrd_data is None:
-    last = 0x04000000
-else:
-    last = 0
 p = (p & ~0xfff) + 0x1000   # Align to 4096-byte boundary
 header += struct.pack("<LLLL",
-    0x00000004 | last,  # FIXME: tags
+    0x00000004,         # FIXME: tags
     p,                  # Load address (32-bit linear address)
     len(bzImage_data),  # Image length in bytes
     len(bzImage_data))  # Memory length in bytes
 p += len(bzImage_data)
 
 # initrd
-if initrd_data is not None:
-    p = (p & ~0xfff) + 0x1000   # Align to 4096-byte boundary
-    header += struct.pack("<LLLL",
-        0x04000004,         # FIXME: tags
-        p,                  # Load address (32-bit linear address)
-        len(initrd_data),   # Image length in bytes
-        len(initrd_data))   # Memory length in bytes
+p = (p & ~0xfff) + 0x1000   # Align to 4096-byte boundary
+header += struct.pack("<LLLL",
+    0x00000004,         # FIXME: tags
+    p,                  # Load address (32-bit linear address)
+    len(initrd_data),   # Image length in bytes
+    len(initrd_data))   # Memory length in bytes
+
+# fake e820 memory map
+p = (p & ~0xfff) + 0x1000   # Align to 4096-byte boundary
+header += struct.pack("<LLLL",
+    0x04000004,         # FIXME: tags
+    p,                  # Load address (32-bit linear address)
+    len(e820_map),      # Image length in bytes
+    len(e820_map))      # Memory length in bytes
 
 header += "\0" * (512 - len(header) - 16) # padding
 header += struct.pack("<xxxBLHxxxxxx",
@@ -119,8 +132,8 @@ outfile.write(header)
 outfile.write(loader_data)  # nbi_header->entries[0]
 outfile.write(cmdline)      # nbi_header->entries[1]
 outfile.write(bzImage_data) # nbi_header->entries[2]
-if initrd_data is not None:
-    outfile.write(initrd_data)  # nbi_header->entries[3]
+outfile.write(initrd_data)  # nbi_header->entries[3]
+outfile.write(e820_map)     # nbi_header->entries[4]
 outfile.close()
 
 # vim:set ts=4 sw=4 sts=4 expandtab:

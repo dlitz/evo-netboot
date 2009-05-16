@@ -3,10 +3,13 @@
 #include "loadlinux.h"
 #include "memory.h"
 #include "printf.h"
+#include "misc.h"
 
 void *bzImage_start = NULL;
 void *initrd_start = NULL;
 uint32_t initrd_size = 0;
+void *e820_start = NULL;
+uint32_t e820_size = 0;
 char *kernel_command_line = "auto";
 void *kernel32_entry_point = (void *)0x00100000;
 
@@ -93,27 +96,12 @@ void load_linux(void)
     bp->ramdisk_image = (uint32_t) initrd_start;
     bp->ramdisk_size = initrd_size;
 
-    // Set up zero-page
+    // Set up e820 map
     printf(" Setting up fake e820 memory map...\n");
-    bp->e820_entries = 0;
-
-    /* 0x00000000 - 0x0009efff (636 KiB) usable */
-    bp->e820_map[0].addr   = 0x00000000;
-    bp->e820_map[0].length = 0x0009f000;
-    bp->e820_map[0].type   = 1;
-    bp->e820_entries++;
-
-    /* 0x0009f000 - 0x0009ffff (4 KiB) reserved */
-    /* Linux ignores e820 maps with only 1 entry, so we need some kind of
-     * discontinuity. */
-    bp->e820_map[1].addr   = 0x0009f000;
-    bp->e820_map[1].length = 0x00001000;
-    bp->e820_map[1].type   = 2;
-    bp->e820_entries++;
-
-    /* 0x000a0000 - 0x01d7ffff (29.5 MiB less 640 KiB) usable */
-    bp->e820_map[2].addr   = 0x000a0000;
-    bp->e820_map[2].length = 0x01ce0000;
-    bp->e820_map[2].type   = 1;
-    bp->e820_entries++;
+    if (e820_size > 128*sizeof(struct e820entry)) {
+        printf(" Error: e820_size 0x%08x too large\n", e820_size);
+        abort();
+    }
+    memcpy(&bp->e820_map[0], e820_start, e820_size);
+    bp->e820_entries = e820_size / sizeof(struct e820entry);
 }
