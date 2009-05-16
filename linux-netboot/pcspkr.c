@@ -36,8 +36,13 @@ void pcspkr_boot_tune(void)
     pcspkr_init();
 
     pcspkr_beep(5746>>1, 50); // G#
+    pcspkr_beep(5119>>1, 50); // A#
+    pcspkr_beep(5746>>1, 50); // G#
     pcspkr_beep(4560>>1, 50); // C
     pcspkr_beep(5746>>1, 50); // G#
+    pcspkr_beep(5119>>1, 50); // A#
+    pcspkr_beep(4560>>1, 83); // C
+    pcspkr_beep(6087>>1, 50); // G
     pcspkr_beep(5119>>1, 83); // A#
     pcspkr_beep(5746>>1, 83); // G#
 }
