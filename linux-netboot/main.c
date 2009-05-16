@@ -123,22 +123,26 @@ void c_main(struct nbi_header *nbi_header)
 
     // Parse nbi_header
     for (int i = 0; i < 31; i++) {
-        // FIXME: Use vendor flags rather than position
+        // NB: The order here must match the order in mkloader
         switch(i) {
         case 0: // loader.bin
             break;
         case 1: // cmdline
             kernel_command_line = (char *)nbi_header->entries[i].load_address;
-            printf("cmdline: %s\n", kernel_command_line);   // DEBUG FIXME
+            printf("Linux cmdline: %s\n", kernel_command_line);
             break;
         case 2: // bzImage
             bzImage_start = (void *)nbi_header->entries[i].load_address;
-            printf("bzImage_start: 0x%08x\n", (uint32_t) bzImage_start);   // DEBUG FIXME
+            printf("bzImage: %d bytes at 0x%08x\n",
+                nbi_header->entries[i].memory_length,
+                (uint32_t) bzImage_start);
             break;
-        case 3: // initrd
+        case 3: // initial ramdisk
             initrd_start = (void *)nbi_header->entries[i].load_address;
             initrd_size = nbi_header->entries[i].memory_length;
-            printf("initrd: %d bytes at 0x%08x\n", initrd_size, (uint32_t) initrd_start);   // DEBUG FIXME
+            printf("initrd: %d bytes at 0x%08x\n",
+                initrd_size,
+                (uint32_t) initrd_start);
             break;
         default:
             ; // do nothing

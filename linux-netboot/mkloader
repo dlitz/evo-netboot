@@ -116,11 +116,11 @@ assert len(header) == 512
 # Write the image
 outfile = open(output_filename, "wb")
 outfile.write(header)
-outfile.write(loader_data)
-outfile.write(cmdline)
-outfile.write(bzImage_data)
+outfile.write(loader_data)  # nbi_header->entries[0]
+outfile.write(cmdline)      # nbi_header->entries[1]
+outfile.write(bzImage_data) # nbi_header->entries[2]
 if initrd_data is not None:
-    outfile.write(initrd_data)
+    outfile.write(initrd_data)  # nbi_header->entries[3]
 outfile.close()
 
 # vim:set ts=4 sw=4 sts=4 expandtab:
