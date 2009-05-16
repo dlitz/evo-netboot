@@ -30,7 +30,7 @@ OBJS = \
 	superio.o \
 	main.o
 
-boot.bin: loader.bin bzImage
+boot.bin: loader.bin bzImage mkloader
 	./mkloader -o $@ -L loader.bin -c "$(KERNEL_CMDLINE)" bzImage
 
 loader.bin: loader.elf
