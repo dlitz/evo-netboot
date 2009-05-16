@@ -1,0 +1,124 @@
+#!/usr/bin/python
+
+import sys
+import getopt
+import struct
+
+def exit_usage():
+    sys.stderr.write("""
+Usage: %s -o FILE [ -H nbiheader.bin ] [ -L loader.bin ] [ -c cmdline ] bzImage [initrd]
+""".lstrip() % (sys.argv[0],))
+    sys.exit(2)
+
+# Defaults
+header_filename = "nbiheader.bin"
+loader_filename = "loader.bin"
+cmdline = "auto"
+output_filename = None
+
+# Parse command-line
+(options, args) = getopt.getopt(sys.argv[1:], "o:H:L:c:")
+
+# Handle arguments
+if len(args) == 1:
+    bzImage_filename = args[0]
+    initrd_filename = None
+elif len(args) == 2:
+    (bzImage_filename, initrd_filename) = args
+else:
+    exit_usage()
+
+# Handle options
+for (opt, value) in options:
+    if opt == '-o':
+        output_filename = value
+    elif opt == '-H':
+        header_filename = value
+    elif opt == '-L':
+        loader_filename = value
+    elif opt == '-c':
+        cmdline = value
+    else:
+        raise AssertionError("BUG: Unrecognized option %r=%r" % (opt, value))
+
+# Output filename must be specified
+if output_filename is None:
+    exit_usage()
+
+# Read the header
+header_data = open(header_filename, "rb").read()
+if len(header_data) != 512:
+    sys.stdout.write("error: %s should be 512 bytes long, not %d\n" % (header_filename, len(header_data)))
+    sys.exit(1)
+
+# Read the loader
+loader_data = open(loader_filename, "rb").read()
+
+# Read the kernel bzImage
+bzImage_data = open(bzImage_filename, "rb").read()
+
+# Read the initial ramdisk
+if initrd_filename is None:
+    initrd_data = None
+else:
+    initrd_data = open(initrd_filename, "rb").read()
+
+# The only thing we use from the header is the last 16 bytes, which contains
+# the initial ljmp instruction.  Everything else is constructed from scratch.
+
+# NBI header record
+real_header = struct.pack("<LLLL",
+    0x1b031336,     # NBI magic
+    0x4,            # flags and length
+    0x0000c00d,     # real-mode load address for the 512-byte header (ds:bx format)
+    0x0000c200)     # real-mode execute address (cs:ip) format
+
+# Load address
+p = 0x01000000
+
+# loader.bin
+real_header += struct.pack("<LLLL",
+    0x00004104,         # FIXME: tags
+    p,                  # Load address (32-bit linear address)
+    len(loader_data),   # Image length in bytes
+    len(loader_data))   # Memory length in bytes
+p += len(loader_data)
+
+# bzImage
+if initrd_data is None:
+    last = 0x04000000
+else:
+    last = 0
+p = (p & ~0xfff) + 0x1000   # Align to 4096-byte boundary
+real_header += struct.pack("<LLLL",
+    0x00004104 | last,  # FIXME: tags
+    p,                  # Load address (32-bit linear address)
+    len(bzImage_data),  # Image length in bytes
+    len(bzImage_data))  # Memory length in bytes
+p += len(bzImage_data)
+
+# initrd
+if initrd_data is not None:
+    p = (p & ~0xfff) + 0x1000   # Align to 4096-byte boundary
+    real_header += struct.pack("<LLLL",
+        0x04004104,         # FIXME: tags
+        p,                  # Load address (32-bit linear address)
+        len(initrd_data),   # Image length in bytes
+        len(initrd_data))   # Memory length in bytes
+
+# The only thing we use from the header is the last 16 bytes, which contains
+# the initial ljmp instruction.
+real_header += "\0" * (512 - len(real_header) - 16)
+real_header += header_data[-16:]
+assert len(real_header) == 512
+
+# Write the image
+outfile = open(output_filename, "wb")
+outfile.write(real_header)
+outfile.write(loader_data)
+outfile.write(bzImage_data)
+if initrd_data is not None:
+    outfile.write(initrd_data)
+outfile.close()
+
+# vim:set ts=4 sw=4 sts=4 expandtab:

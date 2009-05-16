@@ -24,14 +24,8 @@ OBJS = \
 	superio.o \
 	main.o
 
-boot.elf: boot.bin
-	../bin2elf.sh boot.bin boot.elf
-
 boot.bin: loader.bin nbiheader.bin bzImage
-	dd if=/dev/zero of=boot.bin bs=512 count=8321
-	dd if=nbiheader.bin of=boot.bin bs=512 count=1 conv=notrunc
-	dd if=loader.bin of=boot.bin bs=512 seek=65 count=64 conv=notrunc
-	dd if=bzImage of=boot.bin bs=512 seek=129 conv=notrunc
+	./mkloader -o $@ -H nbiheader.bin -L loader.bin bzImage
 
 nbiheader.bin: nbiheader.o
 	objcopy -O binary -j .nbiheader nbiheader.o nbiheader.bin
@@ -49,7 +43,7 @@ loader.elf: $(OBJS) i386-netboot.ld
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -f $(OBJS) loader.elf loader.bin boot.bin boot.elf nbiheader.bin
+	rm -f $(OBJS) loader.elf loader.bin boot.bin nbiheader.bin
 
 .PHONY: clean
 
