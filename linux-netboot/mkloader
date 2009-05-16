@@ -35,7 +35,7 @@ for (opt, value) in options:
     elif opt == '-L':
         loader_filename = value
     elif opt == '-c':
-        cmdline = value
+        cmdline = value.replace("\r\n", " ").replace("\n", " ")
     else:
         raise AssertionError("BUG: Unrecognized option %r=%r" % (opt, value))
 
