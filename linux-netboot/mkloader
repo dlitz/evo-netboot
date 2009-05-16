@@ -6,18 +6,18 @@ import struct
 
 def exit_usage():
     sys.stderr.write("""
-Usage: %s -o FILE [ -H nbiheader.bin ] [ -L loader.bin ] [ -c cmdline ] bzImage [initrd]
+Usage: %s -o FILE [ -L loader.bin ] [ -c cmdline ] bzImage [initrd]
 """.lstrip() % (sys.argv[0],))
     sys.exit(2)
 
 # Defaults
-header_filename = "nbiheader.bin"
 loader_filename = "loader.bin"
+load_address = 0x01000000
 cmdline = "auto"
 output_filename = None
 
 # Parse command-line
-(options, args) = getopt.getopt(sys.argv[1:], "o:H:L:c:")
+(options, args) = getopt.getopt(sys.argv[1:], "o:L:c:")
 
 # Handle arguments
 if len(args) == 1:
@@ -32,8 +32,6 @@ else:
 for (opt, value) in options:
     if opt == '-o':
         output_filename = value
-    elif opt == '-H':
-        header_filename = value
     elif opt == '-L':
         loader_filename = value
     elif opt == '-c':
@@ -44,12 +42,6 @@ for (opt, value) in options:
 # Output filename must be specified
 if output_filename is None:
     exit_usage()
-
-# Read the header
-header_data = open(header_filename, "rb").read()
-if len(header_data) != 512:
-    sys.stdout.write("error: %s should be 512 bytes long, not %d\n" % (header_filename, len(header_data)))
-    sys.exit(1)
 
 # Read the loader
 loader_data = open(loader_filename, "rb").read()
@@ -63,9 +55,6 @@ if initrd_filename is None:
 else:
     initrd_data = open(initrd_filename, "rb").read()
 
-# The only thing we use from the header is the last 16 bytes, which contains
-# the initial ljmp instruction.  Everything else is constructed from scratch.
-
 # NBI header record
 real_header = struct.pack("<LLLL",
     0x1b031336,     # NBI magic
@@ -74,7 +63,7 @@ real_header = struct.pack("<LLLL",
     0x0000c200)     # real-mode execute address (cs:ip) format
 
 # Load address
-p = 0x01000000
+p = load_address
 
 # loader.bin
 real_header += struct.pack("<LLLL",
@@ -106,10 +95,12 @@ if initrd_data is not None:
         len(initrd_data),   # Image length in bytes
         len(initrd_data))   # Memory length in bytes
 
-# The only thing we use from the header is the last 16 bytes, which contains
-# the initial ljmp instruction.
-real_header += "\0" * (512 - len(real_header) - 16)
-real_header += header_data[-16:]
+real_header += "\0" * (512 - len(real_header) - 16) # padding
+real_header += struct.pack("<xxxBLHxxxxxx",
+    0xea,           # ljmp absolute (JMP ptr16:32 - Jump far, absolute, addres given in operand)
+    load_address,   # 32-bit linear address where loader.bin is loaded
+    0x0008)         # 16-bit segment selector (protected-mode %cs register gets set to this value)
+
 assert len(real_header) == 512
 
 # Write the image

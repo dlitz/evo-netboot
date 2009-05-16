@@ -4,14 +4,12 @@ ENTRY(_start)
 
 MEMORY
 {
-  nbiheader (rx): ORIGIN = 0x0000c00d, LENGTH = 0x00000200
   ram0 (wx)     : ORIGIN = 0x01000000, LENGTH = 0x00008000
   bzImage (wx)  : ORIGIN = 0x01080000, LENGTH = 0x00400000
 }
 
 SECTIONS
 {
-  .nbiheader : { *(.nbiheader) } > nbiheader
   .text : {
     *(.startup)
     *(.text)

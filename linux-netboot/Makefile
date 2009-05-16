@@ -14,7 +14,6 @@ OBJS = \
 	led.o \
 	loadlinux.o \
 	memory.o \
-	nbiheader.o \
 	pcspkr.o \
 	pirq.o \
 	printf.o \
@@ -24,11 +23,8 @@ OBJS = \
 	superio.o \
 	main.o
 
-boot.bin: loader.bin nbiheader.bin bzImage
-	./mkloader -o $@ -H nbiheader.bin -L loader.bin bzImage
-
-nbiheader.bin: nbiheader.o
-	objcopy -O binary -j .nbiheader nbiheader.o nbiheader.bin
+boot.bin: loader.bin bzImage
+	./mkloader -o $@ -L loader.bin bzImage
 
 loader.bin: loader.elf
 	objcopy -O binary -j .text loader.elf loader.bin
