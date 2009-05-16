@@ -44,5 +44,7 @@ void pcspkr_boot_tune(void)
 
 void pcspkr_error_tune(void)
 {
+    pcspkr_init();
+
     pcspkr_beep(4560>>2, 500); // C
 }
