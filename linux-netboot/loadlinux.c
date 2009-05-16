@@ -1,10 +1,13 @@
-#include <stdint.h>
 #include <stddef.h>
 
+#include "loadlinux.h"
 #include "memory.h"
 #include "printf.h"
 
-void *bzImage_start = (void *)0x01080000;
+void *bzImage_start = NULL;
+void *initrd_start = NULL;
+uint32_t initrd_size = 0;
+char *kernel_command_line = "auto";
 void *kernel32_entry_point = (void *)0x00100000;
 
 struct e820entry {
@@ -44,20 +47,16 @@ struct boot_params {    // a.k.a. the "zero-page"
     uint8_t  _pad3[8];          /* 0x208 */
     uint8_t  type_of_loader;    /* 0x210 */
     uint8_t  loadflags;         /* 0x211 */
-    uint8_t  _pad4[0x16];       /* 0x212 */
+    uint8_t  _pad4[6];          /* 0x212 */
+    uint32_t  ramdisk_image;    /* 0x218 */
+    uint32_t  ramdisk_size;     /* 0x21c */
+    uint8_t  _pad5[8];          /* 0x220 */
     uint32_t cmd_line_ptr;      /* 0x228 */
-    uint8_t  _pad5[0xa4];       /* 0x22c */
+    uint8_t  _pad6[0xa4];       /* 0x22c */
     struct e820entry e820_map[128]; /* 0x2d0 */
 } __attribute__((packed));
 
 struct boot_params boot_params;
-
-const char *kernel_command_line =
-    "console=ttyS0,115200 console=tty0 earlyprintk=serial,ttyS0,115200"
-    " pci=earlydump"
-    " rootwait root=/dev/sda1 ro"
-    " debug loglevel=7"
-    " memtest=4";
 
 void load_linux(void)
 {
@@ -91,6 +90,8 @@ void load_linux(void)
     bp->type_of_loader = 0xff;  /* other */
     bp->loadflags = 0x01;  /* LOADED_HIGH, !QUIET_FLAG, !KEEP_SEGMENTS, !CAN_USE_HEAP */
     bp->cmd_line_ptr = (uint32_t) kernel_command_line;
+    bp->ramdisk_image = (uint32_t) initrd_start;
+    bp->ramdisk_size = initrd_size;
 
     // Set up zero-page
     printf(" Setting up fake e820 memory map...\n");

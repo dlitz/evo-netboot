@@ -99,6 +99,12 @@ struct nbi_header {
     uint32_t flags_and_length;
     uint32_t header_load_address;   // real-mode address (ds:bx format)
     uint32_t header_exec_address;   // real-mode address (cs:ip format)
+    struct nbi_entry {
+        uint32_t ftl;   // flags, tags, and lengths
+        uint32_t load_address;  // 32-bit linear load address
+        uint32_t image_length;  // length within the image file
+        uint32_t memory_length; // length in memory
+    } __attribute__((packed)) entries[31];
 } __attribute__((packed));
 
 void c_main(struct nbi_header *nbi_header)
@@ -114,6 +120,35 @@ void c_main(struct nbi_header *nbi_header)
 
     // Show a greeting and some propaganda
     printf("%s", propaganda);
+
+    // Parse nbi_header
+    for (int i = 0; i < 31; i++) {
+        // FIXME: Use vendor flags rather than position
+        switch(i) {
+        case 0: // loader.bin
+            break;
+        case 1: // cmdline
+            kernel_command_line = (char *)nbi_header->entries[i].load_address;
+            printf("cmdline: %s\n", kernel_command_line);   // DEBUG FIXME
+            break;
+        case 2: // bzImage
+            bzImage_start = (void *)nbi_header->entries[i].load_address;
+            printf("bzImage_start: 0x%08x\n", (uint32_t) bzImage_start);   // DEBUG FIXME
+            break;
+        case 3: // initrd
+            initrd_start = (void *)nbi_header->entries[i].load_address;
+            initrd_size = nbi_header->entries[i].memory_length;
+            printf("initrd: %d bytes at 0x%08x\n", initrd_size, (uint32_t) initrd_start);   // DEBUG FIXME
+            break;
+        default:
+            ; // do nothing
+        }
+
+        // Stop if this is the last record.
+        if (nbi_header->entries[i].ftl & 0x04000000) {
+            break;
+        }
+    }
 
     // Dump some information about the environment we're running in.
     dump_regs();

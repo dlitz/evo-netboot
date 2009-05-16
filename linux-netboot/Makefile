@@ -7,6 +7,13 @@ CFLAGS = $(WARNINGS) -Winit-self -std=c99 -g -O2 -nostdlib -fomit-frame-pointer
 ASFLAGS = $(WARNINGS)
 LDFLAGS = -nostdlib
 
+KERNEL_CMDLINE = \
+	console=ttyS0,115200 console=tty0 earlyprintk=serial,ttyS0,115200 \
+	pci=earlydump \
+	rootwait root=/dev/sda1 ro \
+	debug loglevel=7 \
+	memtest=4
+
 OBJS = \
 	startup.o \
 	misc.o \
@@ -24,7 +31,7 @@ OBJS = \
 	main.o
 
 boot.bin: loader.bin bzImage
-	./mkloader -o $@ -L loader.bin bzImage
+	./mkloader -o $@ -L loader.bin -c "$(KERNEL_CMDLINE)" bzImage
 
 loader.bin: loader.elf
 	objcopy -O binary -j .text loader.elf loader.bin
