@@ -3,7 +3,29 @@
 p_syscall:
     .int 0xcafebabe
 
+.section .rodata
+a_aborted:
+    .asciz "abort() (EIP=0x%08x)\r\n"
+a_halted:
+    .asciz "*** Bootloader halted ***\r\n"
+
 .section .text
+
+.global abort
+abort:
+        push %esp      # push the return address to the stack
+        push $a_aborted
+        call printf
+        add $8, %esp    # pop args off the stack
+        jmp halt
+
+.global halt
+halt:
+        push $a_halted
+        call printf
+        add $4, %esp    # pop arg off the stack
+1:
+        jmp 1b
 
 .global get_cs_reg
 get_cs_reg:
