@@ -29,14 +29,14 @@ def exit_version():
 def exit_usage(status=2, outfile=sys.stderr):
     outfile.write("""
 Usage: %(ARGV0)s [OPTION] bzImage [initrd]
-Create a network-bootable image that loads Linux and 
+Create a network-bootable image that loads Linux and an optional ramdisk image.
 
   -c CMDLINE           Use the specified kernel command-line. (default: %(CMD)s)
   -d                   Enable debugging output during boot-up.
   -L FILE              Use FILE as the bootloader binary. (default: %(LOADER)s)
   -o, --output=FILE    Write output to FILE. (default is to write to stdout)
-  --help               Show this help and exit.
-  --version            Show version information and exit.
+  --help            Show this help and exit.
+  --version         Show version information and exit.
 """.lstrip() % {
         'ARGV0' : sys.argv[0],
         'LOADER': DEFAULT_LOADER,
