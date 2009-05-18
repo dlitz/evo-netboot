@@ -1,9 +1,62 @@
 #!/usr/bin/env python
 
+VERSION_STRING = """
+netxfer-server 0.1
+Copyright (C) 2009 Dwayne C. Litzenberger
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+Written by Dwayne Litzenberger.
+"""
+
 import socket
 import IN
 import struct
 import sys
+import getopt
+
+CONFIG = {
+    "netif": "eth0",
+    "server-host": None,
+    "client-host": None,
+    "gateway-host": None,
+    "bootp-port": 10067,
+    "bootp-dest-port": None,
+    "tftp-port": 10069,
+    "no-bootp": False,
+}
+
+def exit_version():
+    sys.stdout.write(VERSION_STRING.lstrip())
+    sys.exit(0)
+
+def exit_usage(status=2, outfile=sys.stderr):
+    outfile.write("""
+Usage: %(ARGV0)s [OPTION] -i IFACE -s ADDR -c ADDR FILE
+Serve a network-bootable image (e.g. bootp.bin) once using BOOTP and TFTP.
+
+  -i,--netif=IFACE           bind to network interface
+                               (required and used by BOOTP only)
+  -s,--server-host=ADDR      local server address
+                               (required unless --no-bootp is supplied)
+  -c,--client-host=ADDR      remote client address to be assigned via BOOTP
+                               (required unless --no-bootp is supplied)
+     --gateway-host=ADDR    gateway address provided to client via BOOTP
+                               (default: --server-host)
+     --bootp-port=PORT       local port for BOOTP (default: 10067)
+     --bootp-dest-port=PORT  remote port for BOOTP (default: --bootp-port + 1)
+     --tftp-port=PORT        local port for TFTP (default: 10069)
+     --alt                   use alternate ports, for when you press 'q'
+                               instead of 'p' on the T30.  equivalent to
+                               --bootp-port=67 --tftp-port=69
+     --no-bootp              don't serve BOOTP; just serve over TFTP
+     --help                  show this help and exit
+     --version               show version information and exit
+""".lstrip() % {
+        'ARGV0' : sys.argv[0],
+    })
+    sys.exit(status)
 
 def decode_zstr(zs):
     """Decode a NUL-terminated string"""
@@ -149,12 +202,12 @@ def format_haddr(haddr):
     """Format hardware address for display"""
     return ":".join("%02x" % ord(c) for c in haddr)
 
-def serve_bootp(iface, client_v4addr, server_v4addr, gateway_v4addr):
+def serve_bootp():
     ## BOOTP ##
     skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    skt.bind(('', 10067))
+    skt.bind((CONFIG['server-host'], CONFIG['bootp-port']))
     skt.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    skt.setsockopt(socket.SOL_SOCKET, IN.SO_BINDTODEVICE, iface + "\0")
+    skt.setsockopt(socket.SOL_SOCKET, IN.SO_BINDTODEVICE, CONFIG['netif'] + "\0")
 
     # Get BOOTREQUEST
     (raw_msg, addr) = skt.recvfrom(65535)
@@ -164,19 +217,19 @@ def serve_bootp(iface, client_v4addr, server_v4addr, gateway_v4addr):
 
     # Send BOOTREPLY
     msg['op'] = 2   # BOOTREPLY
-    msg['yiaddr'] = "".join(chr(int(c)) for c in client_v4addr.split("."))
-    msg['siaddr'] = "".join(chr(int(c)) for c in server_v4addr.split("."))
-    msg['giaddr'] = "".join(chr(int(c)) for c in gateway_v4addr.split("."))
+    msg['yiaddr'] = "".join(chr(int(c)) for c in CONFIG['client-host'].split("."))
+    msg['siaddr'] = "".join(chr(int(c)) for c in CONFIG['server-host'].split("."))
+    msg['giaddr'] = "".join(chr(int(c)) for c in CONFIG['gateway-host'].split("."))
     msg['file'] = "bootp.bin"
     raw_msg = encode_dhcp_message(msg)
-    skt.sendto(raw_msg, ('255.255.255.255', 10068))
+    skt.sendto(raw_msg, ('255.255.255.255', CONFIG['bootp-dest-port']))  # XXX: We should do Ethernet unicast here, not broadcast.
 
     skt.close()
 
 def serve_tftp(filename):
     ## TFTP
     skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    skt.bind(('', 10069))
+    skt.bind((CONFIG['server-host'], CONFIG['tftp-port']))
 
     raw_pkt, addr = skt.recvfrom(65535)
     pkt = decode_tftp_packet(raw_pkt)
@@ -241,5 +294,47 @@ def serve_tftp(filename):
                 state = 'NEXTBLOCK'
 
 if __name__ == '__main__':
-    serve_bootp(iface="eth0", client_v4addr="192.168.1.2", server_v4addr="192.168.1.1", gateway_v4addr="192.168.1.1")
-    serve_tftp(sys.argv[1])
+    # Parse arguments
+    (options, args) = getopt.getopt(sys.argv[1:], "i:s:c:", [
+        'netif=', 'server-host=', 'client-host=',
+        'gateway-host=', 'bootp-port=', 'bootp-dest-port=', 'tftp-port=',
+        'alt', 'no-bootp',
+        'help', 'version'])
+    for (opt, optarg) in options:
+        if opt in ('-i', '--netif'):
+            CONFIG['netif'] = optarg
+        elif opt in ('-s', '--server-host'):
+            CONFIG['server-host'] = optarg
+        elif opt in ('-c', '--client-host'):
+            CONFIG['client-host'] = optarg
+        elif opt == '--gateway-host':
+            CONFIG['gateway-host'] = optarg
+        elif opt == '--bootp-port':
+            CONFIG['bootp-port'] = int(optarg)
+        elif opt == '--bootp-dest-port':
+            CONFIG['bootp-dest-port'] = int(optarg)
+        elif opt == '--tftp-port':
+            CONFIG['tftp-port'] = int(optarg)
+        elif opt == '--alt':
+            CONFIG['bootp-port'] = 67
+            CONFIG['tftp-port'] = 69
+        elif opt == '--no-bootp':
+            CONFIG['no-bootp'] = True
+        elif opt == '--help':
+            exit_usage(0, sys.stdout)
+        elif opt == '--version':
+            exit_version()
+        else:
+            raise AssertionError("BUG: Unrecognized option %r=%r" % (opt, optarg))
+
+    if len(args) != 1:
+        exit_usage()
+
+    if CONFIG['bootp-dest-port'] is None:
+        CONFIG['bootp-dest-port'] = CONFIG['bootp-port'] + 1
+    if CONFIG['gateway-host'] is None:
+        CONFIG['gateway-host'] = CONFIG['server-host']
+
+    if not CONFIG['no-bootp']:
+        serve_bootp()
+    serve_tftp(args[0])
