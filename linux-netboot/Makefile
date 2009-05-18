@@ -23,6 +23,8 @@ OBJS = \
 	superio.o \
 	main.o
 
+all: loader.bin
+
 boot.bin: loader.bin bzImage mkloader linux-cmdline.txt
 	./mkloader -o $@ -L loader.bin -c "`cat linux-cmdline.txt`" bzImage
 
@@ -41,6 +43,6 @@ loader.elf: $(OBJS) i386-netboot.ld
 clean:
 	rm -f $(OBJS) loader.elf loader.bin boot.bin nbiheader.bin
 
-.PHONY: clean
+.PHONY: all clean
 
 # vim:set ts=8 sw=8 sts=8 noexpandtab:
