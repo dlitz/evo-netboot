@@ -3,8 +3,8 @@ AS=as
 
 WARNINGS = -Wall -W
 
-CFLAGS = $(WARNINGS) -Winit-self -std=c99 -g -O2 -nostdlib -fomit-frame-pointer
-ASFLAGS = $(WARNINGS)
+CFLAGS = $(WARNINGS) -m32 -Winit-self -std=c99 -g -O2 -nostdlib -fomit-frame-pointer
+ASFLAGS = $(WARNINGS) -m32
 LDFLAGS = -nostdlib
 
 OBJS = \
