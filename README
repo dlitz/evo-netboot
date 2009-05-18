@@ -1,0 +1,108 @@
+Linux Bootloader Tools for Compaq Evo Thin Client T30
+Written by Dwayne C. Litzenberger
+http://www.dlitz.net/software/evo-t30-netboot/
+
+This package contains tools for creating and loading network-bootable Linux
+images that can be loaded on a Compaq Evo T30 using 100% free software and
+without any modification to the device's internal flash memory.  Previous
+approaches were more cumbersome and required users to download and modify the
+manufacturer's proprietary firmware image.
+
+
+EXAMPLE: BUILDING AND LOADING A "FIRMWARE" IMAGE (AKA "bootp.bin")
+
+Note that although we are using the "firmware update" process, this software
+does not modify the Evo T30's flash memory.  Of course, there is always a
+chance that your experience may differ from that of the author.  If this
+software somehow damages your device, the author cannot be held responsible.
+(Though bug reports would be appreciated!)
+
+1. Build boot/loader.bin
+    make -C boot
+
+2. Build your Linux bzImage file.
+
+3. Create a file ("cmdline.txt") containing your Linux kernel command-line.
+You may want to consider the following options to enaable a serial console:
+
+    earlyprintk=serial,ttyS0,115200
+    console=ttyS0,115200
+    console=tty0
+    video=gx1fb:1024x768-16@60
+
+4. Build your bootp.bin file:
+
+    ./mknbi-linux-netxfer -C cmdline.txt -o bootp.bin /path/to/bzImage
+
+5. At this point, you can load the file using NetXfer.  This package includes
+the script "netxfer-server" for your convenience as a simpler alternative to
+configuring and running full-blown DHCP and TFTP servers.  If your server's
+address is 10.0.0.10 and your Evo's address is 10.0.0.22, then you can run the
+following command on your server (as root):
+
+    ./netxfer-server -i eth0 -s 10.0.0.10 -c 10.0.0.22 bootp.bin
+
+6. Connect a keyboard to your Evo T30 and power it on.  The power light will
+turn amber, then flicker off and turn amber again as the keyboard is
+initialized.  At that point, press 'P' on the keyboard.  Your Evo should
+display something like this:
+
+    NETXFER 09.73 10067 10068 10069
+    MAC address 00:80:64:xx:xx:xx
+    Contacting Server       [4001](02)
+
+After a few moments, you should see the bootloader being downloaded and
+started.
+
+
+KNOWN ISSUES
+
+- The PCI IRQ ("$PIR") table is probably wrong, especially for the PCMCIA
+  slot.  This could be fixed: We just need to know how the INTA#-INTD# pins
+  are wired on the board.
+
+- The fake (E820) memory map is hard-coded for a device with 32 MiB of RAM.
+  It's wrong for devices with more memory, and it's probably overly
+  conservative.  (We don't have a BIOS, so we probably don't need to reserve
+  the BIOS addresses.)
+
+- The bootloader assumes the kernel supports a recent version of the Linux
+  32-bit boot protocol (see Documentation/x86/boot.txt).  Older kernels might
+  not boot.  (Version 2.6.28 is known to work.)
+
+- We don't supply any proprietary firmware, so the Geode Virtual System
+  Architecture (VSA) code is missing.  This means that we have to run without
+  PC BIOS, Video BIOS, and XpressAudio firmware.  The snd_cs5530 ALSA driver
+  does not work, but there is apparently a native driver for FreeBSD that
+  could be ported to Linux.  See:
+    http://www.coreboot.org/pipermail/coreboot/2006-May/014694.html
+    http://alumni.cse.ucsc.edu/~brucem/gx_audio/
+
+- The PCI configuration in general might be wrong, since I haven't yet looked
+  at the PCI specifications.
+
+- The parallel port is untested.  (The serial port works, though.)
+
+
+HARDWARE
+
+MODEL No.: T30
+PART No.: 238620-001
+SPARE No.: 272643-001
+PC BOARD: 981048-01 REVB [0232]
+
+    - CPU:          AMD/NatSemi         Geode GX1
+U2  - Southbridge:  NatSemi             CS5530A-UCE
+U3  - Ethernet:     NatSemi             DP83815DUJB
+U4  - CardBus:      Texas Instruments   PCI1410APGE
+U6  - SuperI/O:     NatSemi             PC97307-ICE/VUL
+U12 - AC'97 codec:  NatSemi             LM4546VH
+U22 - Flash:        Toshiba             TC58128AFT (16Mx8 CMOS NAND)
+
+
+LICENSING NOTE
+
+The bootloader image itself is licensed under GPLv2+ in order to avoid a
+potential incompatibilities with Linux's GPLv2-only license.  However, the
+associated tools are licensed under the newer GPLv3+ license.  See the
+respective files for details.
