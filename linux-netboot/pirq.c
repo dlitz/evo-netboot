@@ -163,10 +163,10 @@ static unsigned int pci_get_intd_irq(void) {
 void create_pirq_table(void)
 {
     // Clear existing IRQ settings to force Linux to configure them
-    pci_set_inta_irq(0);
-    pci_set_intb_irq(0);
-    pci_set_intc_irq(0);
-    pci_set_intd_irq(0);
+    pci_set_inta_irq(10);
+    pci_set_intb_irq(11);
+    pci_set_intc_irq(5);
+    pci_set_intd_irq(9);
 
     struct pirq_table *t = (struct pirq_table *)0xf0000;
     bzero(t, sizeof(struct pirq_table));
@@ -197,35 +197,35 @@ void create_pirq_table(void)
         // See the CS5530A documentation,
         // Table 5-1 "PCI Configuration Address Register"
         case 0: // Function 0: Bridge Configuration
-            t->slots[i].pci_devfunc = 0x90;
+            t->slots[i].pci_devfunc = 0x90;     // 0000:00:12.0
             break;
         case 1: // Function 1: SMI Status and ACPI Timer
-            t->slots[i].pci_devfunc = 0x91;
+            t->slots[i].pci_devfunc = 0x91;     // 0000:00:12.1
             break;
         case 2: // Function 2: IDE Controller
-            t->slots[i].pci_devfunc = 0x92;
+            t->slots[i].pci_devfunc = 0x92;     // 0000:00:12.2
             break;
         case 3: // Function 3: XpressAUDIO Subsystem
-            t->slots[i].pci_devfunc = 0x93;
+            t->slots[i].pci_devfunc = 0x93;     // 0000:00:12.3
             break;
         case 4: // Function 4: Video Controller
-            t->slots[i].pci_devfunc = 0x94;
+            t->slots[i].pci_devfunc = 0x94;     // 0000:00:12.4
             break;
         case 5: // USB Controller
             t->slots[i].pci_devfunc = 0x98;     // 0000:00:13.0
             break;
         case 6: // TI PCI1410APGE CardBus controller
-            t->slots[i].pci_devfunc = 0x0e << 3;
+            t->slots[i].pci_devfunc = 0x0e << 3;    // 0000:00:0e.0
             // INTA# on this device triggers INTD# (PIRQ3) at the host
             t->slots[i].inta_link = 3;  // determined through trial-and-error
             // NB: We only use IRQs that Linux's yenta_socket.c will probe for.
             t->slots[i].inta_bitmap = 0x0EF8; // IRQs 3,4,5,6,7,9,10,11
-            t->slots[i].intb_link = 0;
-            t->slots[i].intb_bitmap = 0;
-            t->slots[i].intc_link = 0;
-            t->slots[i].intc_bitmap = 0;
-            t->slots[i].intd_link = 0;
-            t->slots[i].intd_bitmap = 0;
+            t->slots[i].intb_link = 2;
+            t->slots[i].intb_bitmap = 0x0EF8; // IRQs 3,4,5,6,7,9,10,11
+            t->slots[i].intc_link = 1;
+            t->slots[i].intc_bitmap = 0x0EF8; // IRQs 3,4,5,6,7,9,10,11
+            t->slots[i].intd_link = 4;
+            t->slots[i].intd_bitmap = 0x0EF8; // IRQs 3,4,5,6,7,9,10,11
             break;
         case 7: // DP83815 Ethernet Controller  // 0000:00:0f.0
             t->slots[i].pci_devfunc = 0x0f << 3;
