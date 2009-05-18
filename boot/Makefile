@@ -25,9 +25,6 @@ OBJS = \
 
 all: loader.bin
 
-boot.bin: loader.bin bzImage mkloader linux-cmdline.txt
-	./mkloader -o $@ -L loader.bin -c "`cat linux-cmdline.txt`" bzImage
-
 loader.bin: loader.elf
 	objcopy -O binary -j .text loader.elf loader.bin
 
