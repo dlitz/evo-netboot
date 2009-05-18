@@ -1,5 +1,5 @@
-#!/usr/bin/python
-# mknbi-linux-netxfer - Creates a network-bootable image that loads Linux and an initrd
+#!/usr/bin/env python2.5
+# mknbi-linux-netxfer - Creates a network-bootable Linux image for the Evo T30
 #
 # Copyright (C) 2009 Dwayne C. Litzenberger <dlitz@dlitz.net>
 #
