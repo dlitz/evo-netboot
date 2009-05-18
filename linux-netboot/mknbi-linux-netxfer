@@ -4,28 +4,58 @@ import sys
 import getopt
 import struct
 
+VERSION_STRING = """
+mknbi-linux-netxfer 0.1
+Copyright (C) 2009 Dwayne C. Litzenberger
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+Written by Dwayne Litzenberger.
+"""
+
+# Defaults
+DEFAULT_LOADER = "loader.bin"
+DEFAULT_LOAD_ADDRESS = 0x01000000
+DEFAULT_CMDLINE = "auto"
+
 # Vendor flags
 DEBUG_FLAG = (1 << 8)       # Set this on the loader.bin record to enable debugging
 
-def exit_usage():
-    sys.stderr.write("""
-Usage: %s [-d] -o FILE [ -L loader.bin ] [ -c cmdline ] bzImage [initrd]
+def exit_version():
+    sys.stdout.write(VERSION_STRING.lstrip())
+    sys.exit(0)
 
-  -d            Enable debugging output during boot-up
-  -L FILE       Use FILE as the bootloader binary
-  -c CMDLINE    Set the kernel command-line to CMDLINE
-""".lstrip() % (sys.argv[0],))
-    sys.exit(2)
+def exit_usage(status=2, outfile=sys.stderr):
+    outfile.write("""
+Usage: %(ARGV0)s [OPTION] bzImage [initrd]
+Create a network-bootable image that loads Linux and 
 
-# Defaults
-loader_filename = "loader.bin"
-load_address = 0x01000000
-cmdline = "auto"
-output_filename = None
-debug_mode = False
+  -c CMDLINE           Use the specified kernel command-line. (default: %(CMD)s)
+  -d                   Enable debugging output during boot-up.
+  -L FILE              Use FILE as the bootloader binary. (default: %(LOADER)s)
+  -o, --output=FILE    Write output to FILE. (default is to write to stdout)
+  --help               Show this help and exit.
+  --version            Show version information and exit.
+""".lstrip() % {
+        'ARGV0' : sys.argv[0],
+        'LOADER': DEFAULT_LOADER,
+        'CMD': DEFAULT_CMDLINE,
+    })
+    sys.exit(status)
 
 # Parse command-line
-(options, args) = getopt.getopt(sys.argv[1:], "do:L:c:")
+loader_filename = DEFAULT_LOADER
+load_address = DEFAULT_LOAD_ADDRESS
+cmdline = DEFAULT_CMDLINE
+output_filename = None
+debug_mode = False
+try:
+    (options, args) = getopt.getopt(sys.argv[1:], "do:L:c:",
+        ['output=', 'help', 'version'])
+except getopt.GetoptError, exc:
+    sys.stderr.write("%s: error: %s\n" % (sys.argv[0], str(exc)))
+    sys.exit(2)
 
 # Handle arguments
 if len(args) == 1:
@@ -38,7 +68,7 @@ else:
 
 # Handle options
 for (opt, value) in options:
-    if opt == '-o':
+    if opt in ('-o', '--output'):
         output_filename = value
     elif opt == '-L':
         loader_filename = value
@@ -46,12 +76,12 @@ for (opt, value) in options:
         cmdline = value.replace("\r\n", " ").replace("\n", " ")
     elif opt == '-d':
         debug_mode = True
+    elif opt == '--help':
+        exit_usage(0, sys.stdout)
+    elif opt == '--version':
+        exit_version()
     else:
         raise AssertionError("BUG: Unrecognized option %r=%r" % (opt, value))
-
-# Output filename must be specified
-if output_filename is None:
-    exit_usage()
 
 # Read the loader
 loader_data = open(loader_filename, "rb").read()
@@ -145,13 +175,18 @@ header += struct.pack("<xxxBLHxxxxxx",
 assert len(header) == 512
 
 # Write the image
-outfile = open(output_filename, "wb")
+if output_filename is not None:
+    outfile = open(output_filename, "wb")
+else:
+    outfile = sys.stdout
 outfile.write(header)
 outfile.write(loader_data)  # nbi_header->entries[0]
 outfile.write(cmdline)      # nbi_header->entries[1]
 outfile.write(bzImage_data) # nbi_header->entries[2]
 outfile.write(initrd_data)  # nbi_header->entries[3]
 outfile.write(e820_map)     # nbi_header->entries[4]
-outfile.close()
+outfile.flush()
+if output_filename is not None:
+    outfile.close()
 
 # vim:set ts=4 sw=4 sts=4 expandtab:
