@@ -1,0 +1,13 @@
+*.[oa]
+*.elf
+*.bin
+
+# Backup files
+*~
+
+# Vim swapfiles
+.*.sw[lmnop]
+
+# Emacs swapfiles
+.#.*
+\#*#
