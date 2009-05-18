@@ -205,9 +205,9 @@ void c_main(struct nbi_header *nbi_header)
     printf("%s", propaganda);
 
     // Boot Linux
-    printf("Booting Linux...\n");
     led_set(LED_GREEN);
     pcspkr_boot_tune();
+    if (debug_mode) printf("Booting Linux...\n");
     boot_linux();
 
     // We should never get here, but if we do, print something.
