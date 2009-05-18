@@ -1,6 +1,6 @@
 Linux Bootloader Tools for Compaq Evo Thin Client T30
 Written by Dwayne C. Litzenberger
-http://www.dlitz.net/software/evo-t30-netboot/
+http://www.dlitz.net/software/evo-netboot/
 
 This package contains tools for creating and loading network-bootable Linux
 images that can be loaded on a Compaq Evo T30 using 100% free software and
