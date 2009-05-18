@@ -1,0 +1,7 @@
+Linux Bootloader Tools for Compaq Evo Thin Client T30
+Copyright (C) 2009 Dwayne C. Litzenberger <dlitz@dlitz.net>
+
+Note: The bootloader image itself boot/ is licensed under the GPLv2+ in order
+to avoid any incmpatibilities with Linux's GPLv2-only licensing.  However, the
+associated tools (e.g. mknbi-linux-netxfer and netxfer-server) are licensed
+under the more recent GPLv3+ license.  See the respective files for details.
