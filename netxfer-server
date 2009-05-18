@@ -221,7 +221,7 @@ def format_haddr(haddr):
 def serve_bootp():
     ## BOOTP ##
     skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    skt.bind((CONFIG['server-host'], CONFIG['bootp-port']))
+    skt.bind(('', CONFIG['bootp-port']))
     skt.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     skt.setsockopt(socket.SOL_SOCKET, IN.SO_BINDTODEVICE, CONFIG['netif'] + "\0")
 
