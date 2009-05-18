@@ -123,8 +123,8 @@ void c_main(struct nbi_header *nbi_header)
     // assignment is necessary before printf() will work.
     p_syscall = nbi_header->p_syscall;
 
-    // Show a greeting and some propaganda
-    printf("%s", propaganda);
+    // Show a greeting
+    printf("Starting bootloader...\n");
 
     // Parse nbi_header
     for (int i = 0; i < 31; i++) {
@@ -201,10 +201,13 @@ void c_main(struct nbi_header *nbi_header)
     printf("Loading Linux...\n");
     load_linux();
 
+    // Show some propaganda
+    printf("%s", propaganda);
+
     // Boot Linux
     printf("Booting Linux...\n");
-    pcspkr_boot_tune();
     led_set(LED_GREEN);
+    pcspkr_boot_tune();
     boot_linux();
 
     // We should never get here, but if we do, print something.
