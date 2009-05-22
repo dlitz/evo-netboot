@@ -55,11 +55,15 @@ void superio_init(void)
     if (debug_mode) printf("PC97307 SuperI/O: Activating serial port\n");
     superio_select_logical_device(6); // logical device 6 (UART1)
     superio_outb(superio_inb(0x30) | 1, 0x30);  // 0x30: Activate
+    if (debug_mode) printf("PC97307 SuperI/O: Serial interrupt %s-triggered \n", (superio_inb(0x71) & 1) ? "LEVEL" : "EDGE");
+    if (debug_mode) printf("PC97307 SuperI/O: Serial IRQ %d\n", superio_inb(0x70));
 
     // Enable parallel port
     if (debug_mode) printf("PC97307 SuperI/O: Activating parallel port\n");
     superio_select_logical_device(4); // logical device 4 (Parallel port)
     superio_outb(superio_inb(0x30) | 1, 0x30);  // 0x30: Activate
+    if (debug_mode) printf("PC97307 SuperI/O: Parallel interrupt %s-triggered \n", (superio_inb(0x71) & 1) ? "LEVEL" : "EDGE");
+    if (debug_mode) printf("PC97307 SuperI/O: Parellel IRQ %d\n", superio_inb(0x70));
 
     // Determine the I/O base address for GPIO.  This will have already been
     // set by NETXFER.
