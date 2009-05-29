@@ -1,0 +1,194 @@
+<HTML>
+<HEAD>
+<TITLE>General Reentrant printf() Function</TITLE>
+<META  name="description"
+content="A public domain general printf() routine.">
+</HEAD>
+<body>
+
+<TABLE>
+<TR>
+<TD>
+<A HREF=index.html><IMG SRC=sitelogo.gif WIDTH=120 HEIGHT=114 ALT="LOGO"></A>
+</TD>
+<TD>
+<CENTER><H1>General Reentrant printf() Function</H1></CENTER>
+</TD>
+</TR>
+</TABLE>
+
+
+<DL>
+<DT>Title:       <DD>General Reentrant printf() Function
+<DT>Language:    <DD>C
+<DT>Author:      <DD>Philip J. Erdelsky
+                 <UL>
+                 <LI><A HREF="mailto:pje@efgh.com">pje@efgh.com</A>
+                 <LI><A HREF="http://www.alumni.caltech.edu/~pje/">
+                     http://www.alumni.caltech.edu/~pje/</A>
+                 </UL>
+<DT>Date:        <DD>June 8, 1992
+<DT>Usage:       <DD>Public domain; no restrictions on use
+<DT>Portability: <DD>Any C compiler
+<DT>Keywords:    <DD>printf, editing, formatting, printing
+
+<DT>Abstract:    <DD>A generalized version of printf() that supports arbitrary
+               output methods and is reentrant, but does not support
+               floating-point editing.
+
+<DT>Source:      <DD><A HREF="gprintf.txt">gprintf.txt</A>
+</DL>
+
+
+<P>
+The function printf() and its companions fprintf(), sprintf(), vprintf(), etc.,
+are found in every standard C library and are called by nearly every C
+application.  However, without source code they are rather difficult to adapt
+to environments other than those for which they were written, and they are not
+necessarily reentrant.
+
+<P>
+Our version of these functions, which we call general_printf(), is as portable
+and versatile as we could make it, and it is completely reentrant.  You may
+have to serialize access to the output device, but you won't have to serialize
+access to general_printf() itself.
+
+<P>
+We don't support floating-point editing, but we do support other features of
+the original printf() and also some add-ons.  The editing phrase %b edits an
+integer in binary, and the phrase %u edits an unsigned integer in decimal.
+Both permit the standard field parameter and the modifier l if the integer is
+long.  An asterisk, if used as a field or precision parameter, takes on the
+value of the corresponding argument, which must be an integer.  The editing
+phrase %x uses small letters in the edited result, the editing phrase %X uses
+capital letters.
+
+<P>
+We tacitly assume that function arguments of type "short" and "char" are
+expanded to type "int", and that the size of an argument of type "long" or
+"char *" is a multiple of the size of an argument of type "int".  These
+assumptions are true for all compilers that we are familiar with.
+
+<P>
+The call on general_printf() is as follows:
+
+<P>
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=4>
+<TR><TD>
+     n = general_printf(output_function, output_pointer, control_string,
+           argument_pointer);
+</TD></TR>
+<TR><TD>
+<TABLE BORDER=0 CELLSPACING=4 CELLPADDING=4>
+<TR>
+<TD>void (*output_function)(void *, int);</TD><TD>function to be called to output
+                                            a character of the edited result</TD>
+</TR>
+
+<TR>
+<TD>void *output_pointer;                </TD><TD>pointer to be passed to
+                                            (*output_function)()</TD>
+</TR>
+
+<TR>
+<TD>char *control_string;                </TD><TD>control string, also called a
+                                            format string</TD>
+</TR>
+
+<TR>
+<TD>int *argument_pointer;               </TD><TD>pointer to first argument in
+                                            argument list</TD>
+</TR>
+
+<TR>
+<TD>int n;                               </TD><TD>number of characters sent to
+                                            output device, or a negative
+                                            error code</TD.
+</TR>
+</TABLE>
+</TD></TR>
+</TABLE>
+
+<P>
+The function uses the control string to edit the argument list and sends the
+resulting string of ASCII characters to the output device, one at a time, by
+calling the function (*output_function)() as follows:
+
+<P>
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=4>
+<TR><TD>
+     e = (*output_function)(output_pointer, c);
+</TD></TR>
+<TR><TD>
+<TABLE BORDER=0 CELLSPACING=4 CELLPADDING=4>
+<TR>
+<TR>
+<TD>void *output_pointer;   </TD><TD>implementation-defined pointer</TD>
+</TR>
+<TR>
+<TD>int c;                  </TD><TD>character of edited string</TD>
+</TR>
+<TR>
+<TD>int e;                  </TD><TD>nonnegative value for successful operation,
+                             or negative error code</TD>
+</TR>
+</TABLE>
+</TD></TR>
+</TABLE>
+
+<P>
+The pointer may be a file pointer, a drive number, or a pointer to some
+implementation-defined descriptor block.  The function general_printf() makes
+no assumptions about it, but merely passes it on.  The function need not
+return the character c if the operation is successful, but it must return a
+negative value if there was an error.  This value is then returned unchanged
+by general_printf() as its functional value.
+
+<P>
+The function general_printf() need not be called directly.  You may find it
+much more convenient to use it as a basis for your own versions of the standard
+C library functions.  Here are examples of possible alternative versions of
+fprintf() and sprintf() under DOS:
+
+<BLOCKQUOTE>
+   #include &lt;stdio.h></BR>
+</BR>
+   static int output(void *fp, int c)</BR>
+   {</BR>
+     return putc(c, (FILE *) fp);</BR>
+   }</BR>
+</BR>
+   int alternative_fprintf(FILE *fp, char *control, ...)</BR>
+   {</BR>
+     return general_printf(output, fp, control, (int *)(&control+1));</BR>
+   }</BR>
+</BR>
+   static int fill_string(void *p, int c)</BR>
+   {</BR>
+     *(*(char **)p)++ = c;</BR>
+     return 0;</BR>
+   }</BR>
+</BR>
+   int alternative_sprintf(char *s, char *control, ...)</BR>
+   {</BR>
+     int n = general_printf(fill_string, &s, control, (int *)(&control+1));</BR>
+     *s = 0;</BR>
+     return n;</BR>
+   }</BR>
+</BLOCKQUOTE>
+
+<P>
+The implementation of general_printf() uses "short" arithmetic in a few places
+where "int" arithmetic might have been used.  Of course, if the two types are
+the same, there is no harm in doing this; but if "short" variables occupy two
+bytes and "int" variables occupy four bytes, some stack space is saved by using
+"short" variables.  However, there is also a much better reason.  If
+general_printf() is given corrupt input, it may hang up in one of its internal
+loops.  If the loop counter is four bytes long, the system or process may
+effectively freeze because executing even a tight loop over 2 billion times
+will take longer than the user is prepared to wait.  If the loop counter is
+only two bytes long, it will finish after at most 32,767 iterations.
+
+</BODY>
+</HTML>
+

@@ -123,6 +123,10 @@ void c_main(struct nbi_header *nbi_header)
     // assignment is necessary before printf() will work.
     p_syscall = nbi_header->p_syscall;
 
+    // Configure printf()
+    bzero(&printf_config, sizeof(struct printf_config_struct));
+    printf_config.screen_output = true;
+
     // Show a greeting
     printf("Starting bootloader...\n");
 
@@ -177,6 +181,10 @@ void c_main(struct nbi_header *nbi_header)
 
     // Initialize SuperI/O devices (serial, parallel)
     superio_init();
+
+    // Initialize serial port
+    serial_init();
+    printf_config.serial_output = true;     // Enable output to serial port
 
     // Set the power-button LED to amber (it should be this colour already)
     led_set(LED_AMBER);
